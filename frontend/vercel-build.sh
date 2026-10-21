@@ -12,6 +12,8 @@ tar -xJf "$FLUTTER_ARCHIVE" -C /tmp
 export PATH="/tmp/flutter/bin:$PATH"
 export CI=true
 
+git config --global --add safe.directory /tmp/flutter
+
 flutter --version
 flutter config --no-analytics
 flutter pub get
