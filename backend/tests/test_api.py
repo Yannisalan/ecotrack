@@ -294,27 +294,52 @@ def test_cors_origins_default_and_override(monkeypatch):
     monkeypatch.setenv("CORS_ORIGINS", "https://a.example, https://b.example")
     assert config._cors_origins() == ["https://a.example", "https://b.example"]
 
-    # A wildcard entry becomes a compiled regex (any port).
-    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:*")
-    origins = config._cors_origins()
-    assert len(origins) == 1 and hasattr(origins[0], "search")
-    assert origins[0].search("http://localhost:5173")
-    assert not origins[0].search("http://evil.example:5173")
+    # Wildcard entries are dropped outright: an allowlist that can match any
+    # host would let any site drive the API with the user's cookies.
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:*,https://ok.example")
+    with pytest.warns(RuntimeWarning):
+        origins = config._cors_origins()
+    assert origins == ["https://ok.example"]
+    assert all(not hasattr(o, "search") for o in origins)
 
-    # Unset defaults to localhost-on-any-port, not "*".
+    # Unset means "no cross-origin caller at all" - not localhost.
     monkeypatch.delenv("CORS_ORIGINS", raising=False)
-    origins = config._cors_origins()
-    assert len(origins) == 2 and all(hasattr(o, "search") for o in origins)
-    assert any(o.search("http://127.0.0.1:8080") for o in origins)
+    assert config._cors_origins() == []
 
-    # Explicit "*" is refused (falls back to localhost), regardless of debug,
-    # so a misconfiguration can never ship a wide-open allowlist.
+    # A bare "*" is refused too, and leaves the allowlist empty.
     monkeypatch.setenv("CORS_ORIGINS", "*")
-    origins = config._cors_origins()
-    assert origins != ["*"]
-    assert all(hasattr(o, "search") for o in origins)
-    assert any(o.search("http://localhost:5173") for o in origins)
+    with pytest.warns(RuntimeWarning):
+        origins = config._cors_origins()
+    assert origins == []
     importlib.reload(config)  # restore module state
+
+
+def test_cors_wildcard_origin_gets_no_allow_header(client):
+    """A request from an unlisted origin must not be granted access."""
+    r = client.get(
+        "/api/health",
+        headers={"Origin": "https://evil.example"},
+    )
+    assert r.status_code == 200
+    assert "Access-Control-Allow-Origin" not in r.headers
+
+
+def test_cors_exact_origin_is_allowed(client, monkeypatch):
+    import importlib
+    import config
+    from app import create_app
+
+    monkeypatch.setenv("CORS_ORIGINS", "https://good.example")
+    importlib.reload(config)
+    app = create_app(config.Config)
+    with app.test_client() as c:
+        r = c.get(
+            "/api/health",
+            headers={"Origin": "https://good.example"},
+        )
+        assert r.headers.get("Access-Control-Allow-Origin") == "https://good.example"
+    importlib.reload(config)  # restore module state
+
 
 # ------------------------------------------------------------ streak
 

@@ -29,7 +29,8 @@ class _LimitConfig(Config):
 
 
 class _CorsConfig(Config):
-    CORS_ORIGINS = [r"^http://localhost:\d+$"]
+    # Exact origins only: wildcard patterns are no longer supported.
+    CORS_ORIGINS = ["http://localhost:5173"]
 
 
 def _login(client, email="a@b.com", password="secret123"):

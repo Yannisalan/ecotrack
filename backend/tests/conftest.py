@@ -14,6 +14,9 @@ os.environ["REMINDER_SCHEDULER"] = "false"
 os.environ["TESTING"] = "1"
 # No trusted proxy in tests, so X-Forwarded-For must not be honored.
 os.environ["PROXY_FIX_HOPS"] = "0"
+# Cross-origin access is denied in tests unless a test opts in explicitly, so
+# the suite never depends on the developer's local .env.
+os.environ["CORS_ORIGINS"] = ""
 
 import pytest  # noqa: E402
 from app import create_app  # noqa: E402

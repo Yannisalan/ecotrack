@@ -1,5 +1,4 @@
 import os
-import re
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -66,45 +65,40 @@ def _engine_options(uri):
 def _cors_origins():
     """Origins allowed to call the API cross-origin.
 
-    ``CORS_ORIGINS`` is a comma-separated list. An entry containing ``*`` is
-    treated as a wildcard pattern (``http://localhost:*`` matches any port);
-    everything else is matched exactly.
+    ``CORS_ORIGINS`` is a comma-separated list of *exact* origins, for example
+    ``https://app.example.com``.
 
     Safety rules:
-    - A bare ``*`` (allow every origin) is never returned. It is refused
-      regardless of FLASK_DEBUG, so a debug flag can never widen the allowlist
-      to every website. Local development still works via the explicit
-      localhost entries below (or by listing ``http://localhost:*``).
-    - An empty/missing value defaults to localhost on any port.
+    - Wildcards are not supported at all. An entry containing ``*`` is dropped
+      with a warning, because a wildcard allowlist lets any site on the
+      internet drive the API with the user's cookies. A bare ``*`` is just
+      another dropped entry.
+    - An unset or empty value yields an empty list, i.e. no cross-origin
+      request is allowed. That is the right default for the recommended
+      deployment, where the web app and the API share one origin and no
+      CORS configuration is needed at all.
     """
     raw = os.getenv("CORS_ORIGINS", "").strip()
-    if not raw or raw == "*":
-        if raw == "*":
-            import warnings
+    if not raw:
+        return []
 
-            warnings.warn(
-                "CORS_ORIGINS='*' is refused; defaulting to localhost. Set "
-                "explicit origins (e.g. http://localhost:* for local dev).",
-                RuntimeWarning,
-            )
-        return [
-            re.compile(r"^http://localhost:\d+$"),
-            re.compile(r"^http://127\.0\.0\.1:\d+$"),
-        ]
+    import warnings
+
     origins = []
     for part in raw.split(","):
         entry = part.strip()
         if not entry:
             continue
         if "*" in entry:
-            pattern = "^" + re.escape(entry).replace(r"\*", ".*") + "$"
-            origins.append(re.compile(pattern))
-        else:
-            origins.append(entry)
-    return origins or [
-        re.compile(r"^http://localhost:\d+$"),
-        re.compile(r"^http://127\.0\.0\.1:\d+$"),
-    ]
+            warnings.warn(
+                f"Ignoring wildcard CORS origin {entry!r}: wildcards are not "
+                "allowed. List exact origins instead (e.g. "
+                "https://app.example.com).",
+                RuntimeWarning,
+            )
+            continue
+        origins.append(entry)
+    return origins
 
 
 class Config:

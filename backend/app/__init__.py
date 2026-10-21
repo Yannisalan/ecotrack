@@ -29,6 +29,9 @@ def create_app(config_class=Config):
         resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}},
         allow_headers=["Content-Type", "Authorization", "X-Client-Platform"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        # The web client refreshes with an HttpOnly cookie, so credentialed
+        # cross-origin calls are required. This is safe only because the
+        # allowlist contains exact origins: it can never contain a wildcard.
         supports_credentials=True,
     )
 
