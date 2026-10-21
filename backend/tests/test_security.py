@@ -141,6 +141,36 @@ def test_refresh_locations_match_the_clients():
     assert "headers" not in _REFRESH_LOCATIONS
 
 
+# ------------------------------------------------------------ headers
+
+def test_api_responses_carry_strict_security_headers(client):
+    r = client.get("/api/health")
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert r.headers["X-Frame-Options"] == "DENY"
+    assert r.headers["Referrer-Policy"] == "no-referrer"
+    assert r.headers["Cache-Control"] == "no-store"
+
+    csp = r.headers["Content-Security-Policy"]
+    assert "default-src 'none'" in csp
+    assert "frame-ancestors 'none'" in csp
+
+
+def test_hsts_is_only_sent_over_https(client):
+    plain = client.get("/api/health", base_url="http://localhost")
+    assert "Strict-Transport-Security" not in plain.headers
+
+    secure = client.get("/api/health", base_url="https://localhost")
+    assert "max-age=31536000" in secure.headers["Strict-Transport-Security"]
+
+
+def test_security_headers_also_apply_to_errors(client):
+    """A failing request must not leak an unruled response."""
+    r = client.get("/api/does-not-exist")
+    assert r.status_code == 404
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert "default-src 'none'" in r.headers["Content-Security-Policy"]
+
+
 def test_forgot_and_reset_password(client):
     register(client)
     old = _login(client)

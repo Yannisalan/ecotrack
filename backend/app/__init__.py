@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
@@ -68,11 +68,27 @@ def create_app(config_class=Config):
 
     @app.after_request
     def security_headers(resp):
-        # JSON API hardening. HSTS is left to the TLS terminator (Render).
+        # JSON API hardening.
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("X-Frame-Options", "DENY")
+        # The API only ever returns JSON, so it can afford the strictest
+        # policy: no scripts, no plugins, no outbound connections, no framing.
+        resp.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+        )
+        # Never leak API paths to third parties. ("no-referrer" is already the
+        # strictest referrer policy; it stays.)
         resp.headers.setdefault("Referrer-Policy", "no-referrer")
         resp.headers.setdefault("Cache-Control", "no-store")
+        # HSTS is only meaningful once the connection is already HTTPS.
+        # Sending it over plain http is ignored by browsers, and a stray
+        # header on a local http request can lock a developer out of
+        # localhost. ProxyFix already restores the original scheme here.
+        if request.is_secure and "Strict-Transport-Security" not in resp.headers:
+            resp.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
         return resp
 
     @jwt.unauthorized_loader
