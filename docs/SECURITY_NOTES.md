@@ -17,20 +17,35 @@ hosting layer (Vercel, in `frontend/web/vercel.json`). The app's CSP must be
 set there.
 
 ### Recommended policy
+### Recommended policy (rollout: Report-Only first)
+
+Build the web app with `flutter build web --no-web-resources-cdn` so CanvasKit
+is served from your own origin. Flutter may still fetch fallback fonts from
+`fonts.gstatic.com`; the policy below allows that, so check the browser console
+in Report-Only mode and remove it if nothing is blocked without it.
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';
+script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval';
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
-font-src 'self' data:;
-connect-src 'self';
+font-src 'self' data: https://fonts.gstatic.com;
+connect-src 'self' https://fonts.gstatic.com;
 worker-src 'self' blob:;
 manifest-src 'self';
 frame-ancestors 'none';
 base-uri 'self';
 object-src 'none'
 ```
+
+`'unsafe-eval'` is left out on purpose. If the release build fails to load,
+add it back, and note that in this file.
+
+Rollout steps:
+1. Deploy with the header key `Content-Security-Policy-Report-Only`.
+2. Load every screen and check the browser console for violations.
+3. Fix or allow only what is genuinely needed.
+4. Switch the key to `Content-Security-Policy`.
 
 ### Why `'wasm-unsafe-eval'` is required
 
@@ -84,20 +99,40 @@ should set HSTS unconditionally, because it terminates TLS.
 ## 3. ProxyFix and the trusted-proxy count
 
 Rate limiting keys on the client IP, so the app must know how many reverse
-proxies sit in front of it. `PROXY_FIX_HOPS` is that number:
+proxies sit in front of it. `PROXY_FIX_HOPS` is that number.
 
 | Deployment | `PROXY_FIX_HOPS` |
 | --- | --- |
-| Local `python run.py` | `0` (default in debug) |
-| Render (one load balancer) | `1` (set in `render.yaml`) |
+| Local `python run.py` | `0` |
+| Render directly (one load balancer) | `1` |
+| Vercel rewrite → Render | `1` or `2`: **verify, do not assume** |
 
-With the wrong value, either the real client IP is hidden behind the proxy
-IP (every visitor shares one rate-limit bucket) or `X-Forwarded-For` is
-trusted from an untrusted party (a visitor can forge their IP and bypass rate
-limiting entirely).
+### How to verify after deploying
 
-`ProxyFix` is only applied when the count is greater than zero, so a direct
-connection never trusts a spoofable header.
+1. Temporarily log `request.remote_addr` and the raw `X-Forwarded-For` header
+   on `/api/health` (remove the logging afterwards).
+2. Call the endpoint from two different networks, for example home Wi-Fi and
+   mobile data.
+3. If the logged `remote_addr` differs per network and matches each real
+   client IP, the hop count is correct.
+4. If both networks show the same IP (a Vercel or Render address), raise the
+   count by one and test again.
+5. Never set a number higher than the real proxy count. With too many hops,
+   a visitor can forge `X-Forwarded-For` and bypass rate limiting.
+
+Re-verify whenever the hosting setup changes.
+
+### Production flags that must be set on Render
+
+- `JWT_COOKIE_SECURE=true` (otherwise the refresh cookie is not marked Secure)
+- `CORS_ORIGINS` empty (same-origin deployment) or the exact web origin
+- `PROXY_FIX_HOPS` set to the value verified above
+
+### Known limitation
+
+`memory://` rate-limit counters also reset when Render restarts or spins down
+an idle service, not only on deploys. Acceptable for this deployment size;
+use a shared Redis store before scaling out.
 
 ## 4. Rate limit storage
 
