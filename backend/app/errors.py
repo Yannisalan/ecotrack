@@ -17,7 +17,7 @@ MSG_NOT_FOUND = "Sorry, we couldn't find what you were looking for."
 MSG_METHOD_NOT_ALLOWED = "Sorry, that action isn't supported."
 MSG_UNAUTHORIZED = "Your session has expired. Please log in again."
 MSG_FORBIDDEN = "Sorry, you don't have permission to do that."
-MSG_CONFLICT = "That didn't work because it already exists."
+MSG_CONFLICT = "Sorry, we couldn't complete that request. Please try again."
 MSG_BAD_REQUEST = (
     "Sorry, we couldn't process that request. "
     "Please check your details and try again."

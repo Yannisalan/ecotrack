@@ -23,13 +23,25 @@ void main() {
 
     test('prefers a safe backend hint for 400/404/409', () {
       expect(
-        ErrorMessages.forStatus(400, serverMessage: 'Email already registered'),
-        'Email already registered',
+        ErrorMessages.forStatus(
+          400,
+          serverMessage: 'Sorry, we couldn\'t process that request. '
+              'Please check your details and try again.',
+        ),
+        'Sorry, we couldn\'t process that request. '
+        'Please check your details and try again.',
       );
       expect(
         ErrorMessages.forStatus(404, serverMessage: 'Activity not found'),
         'Activity not found',
       );
+    });
+
+    test('the conflict wording does not reveal that a record exists', () {
+      final message = ErrorMessages.forStatus(409).toLowerCase();
+      for (final leak in ['already', 'exists', 'taken', 'registered']) {
+        expect(message.contains(leak), isFalse);
+      }
     });
 
     test('ignores technical backend hints and falls back', () {
@@ -82,8 +94,8 @@ void main() {
 
     test('ApiException uses its status + safe message', () {
       expect(
-        friendlyError(ApiException('Email already registered', 409)),
-        'Email already registered',
+        friendlyError(ApiException('Activity not found', 404)),
+        'Activity not found',
       );
       expect(
         friendlyError(ApiException('raw internal detail', 500)),

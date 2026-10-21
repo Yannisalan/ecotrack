@@ -38,7 +38,10 @@ class ErrorMessages {
   static const forbidden = "Sorry, you don't have permission to do that.";
   static const notFound =
       "Sorry, we couldn't find what you were looking for.";
-  static const conflict = "That didn't work because it already exists.";
+  // Generic on purpose: wording like "it already exists" would tell an
+  // attacker that a record (an account, an email) is already taken.
+  static const conflict =
+      "Sorry, we couldn't complete that request. Please try again.";
   static const tooManyRequests =
       'Too many attempts. Please wait a moment and try again.';
   static const serverError =

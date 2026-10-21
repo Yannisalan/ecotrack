@@ -18,9 +18,57 @@ def test_register_success(client):
     assert "password" not in str(data).lower().replace("password_hash", "")
 
 
-def test_register_duplicate_email_is_409(client):
+def test_register_duplicate_email_is_generic(client):
+    """A duplicate email must not be distinguishable from any other failure."""
     assert register(client, email="a@b.com").status_code == 201
-    assert register(client, email="A@B.com").status_code == 409
+
+    duplicate = register(client, email="A@B.com")
+    assert duplicate.status_code == 400
+    body = duplicate.get_json()
+    assert set(body) == {"error"}
+
+    # The wording must not confirm that the address is taken.
+    lowered = body["error"].lower()
+    for leak in ("already", "registered", "exists", "taken", "duplicate", "email"):
+        assert leak not in lowered, f"response leaks account existence: {body}"
+
+
+def test_register_duplicate_response_matches_a_generic_failure(client):
+    """The duplicate answer is the same as any other rejected registration."""
+    from app.errors import MSG_BAD_REQUEST
+
+    assert register(client, email="dup@b.com").status_code == 201
+    duplicate = register(client, email="dup@b.com")
+    assert duplicate.get_json()["error"] == MSG_BAD_REQUEST
+
+
+def test_register_duplicate_keeps_the_rate_limit(client):
+    """Anti-enumeration must not weaken the rate limit."""
+    from app import create_app
+    from config import Config
+
+    class _LimitConfig(Config):
+        RATELIMIT_ENABLED = True
+
+    app = create_app(_LimitConfig)
+    with app.test_client() as c:
+        first = c.post(
+            "/api/auth/register",
+            json={"name": "A", "email": "rl-dup@b.com",
+                  "password": "secret123", "terms_accepted": True},
+        )
+        assert first.status_code == 201
+
+        statuses = [
+            c.post(
+                "/api/auth/register",
+                json={"name": "A", "email": "rl-dup@b.com",
+                      "password": "secret123", "terms_accepted": True},
+            ).status_code
+            for _ in range(15)
+        ]
+
+    assert 429 in statuses
 
 
 def test_register_requires_terms_acceptance(client):

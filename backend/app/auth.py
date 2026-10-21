@@ -103,7 +103,13 @@ def register():
             error="You must accept the Terms and Privacy Policy to create an account."
         ), 400
     if User.query.filter_by(email=email).first():
-        return jsonify(error="Email already registered"), 409
+        # Generic answer on purpose. The response is byte-for-byte the same
+        # as any other rejected registration, so the endpoint cannot be used
+        # to discover which addresses already have an account. The rate limit
+        # above still applies, so the probing is rate limited as well.
+        from .errors import MSG_BAD_REQUEST
+
+        return jsonify(error=MSG_BAD_REQUEST), 400
 
     user = User(
         name=name,
