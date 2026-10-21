@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify, request
 from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -11,11 +13,42 @@ def create_app(config_class=Config):
 
     # Trust the configured number of reverse proxies so request.remote_addr
     # (and therefore rate limiting) reflects the real client, not the balancer.
+    # ProxyFix is only applied when the count is greater than zero, so a
+    # direct connection never trusts a spoofable X-Forwarded-For header.
     hops = int(app.config.get("PROXY_FIX_HOPS") or 0)
     if hops:
         app.wsgi_app = ProxyFix(
             app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops, x_port=hops
         )
+    else:
+        app.logger.info(
+            "PROXY_FIX_HOPS=0: X-Forwarded-For is not trusted, so rate limits "
+            "are keyed on the direct peer address."
+        )
+
+    # The rate limiter's counter store. "memory://" is per-process: counters
+    # reset on every restart and every worker keeps its own set. That is fine
+    # for the single-worker deployment (render.yaml pins --workers 1) but it
+    # must not be silent.
+    storage_uri = str(app.config.get("RATELIMIT_STORAGE_URI") or "memory://")
+    if storage_uri.strip().lower().startswith("memory"):
+        workers = (os.getenv("WEB_CONCURRENCY") or "1").strip()
+        try:
+            worker_count = int(workers)
+        except ValueError:
+            worker_count = 1
+        message = (
+            "RATELIMIT_STORAGE_URI is 'memory://': rate limits are counted per "
+            "process and reset on every restart. With %d worker(s) each worker "
+            "keeps its own counters, so a client can multiply its effective "
+            "limit by the worker count. Point RATELIMIT_STORAGE_URI at a "
+            "shared store (for example 'redis://HOST:PORT/0', which also needs "
+            "the 'redis' package) before running more than one worker."
+        ) % worker_count
+        if worker_count > 1:
+            app.logger.warning(message)
+        else:
+            app.logger.info(message)
 
     db.init_app(app)
     jwt.init_app(app)

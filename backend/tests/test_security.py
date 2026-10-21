@@ -171,6 +171,112 @@ def test_security_headers_also_apply_to_errors(client):
     assert "default-src 'none'" in r.headers["Content-Security-Policy"]
 
 
+# ------------------------------------------------------------ rate limiting
+
+def test_rate_limit_storage_uri_comes_from_the_environment(monkeypatch):
+    import importlib
+    import config
+
+    try:
+        monkeypatch.setenv("RATELIMIT_STORAGE_URI", "redis://example:6379/0")
+        importlib.reload(config)
+        assert config.Config.RATELIMIT_STORAGE_URI == "redis://example:6379/0"
+
+        monkeypatch.delenv("RATELIMIT_STORAGE_URI", raising=False)
+        importlib.reload(config)
+        assert config.Config.RATELIMIT_STORAGE_URI == "memory://"
+    finally:
+        monkeypatch.undo()
+        importlib.reload(config)  # restore module state
+
+
+def test_memory_rate_limit_storage_is_labelled_at_startup(caplog):
+    """The per-process fallback must never be silent."""
+    import logging
+
+    from app import create_app
+
+    with caplog.at_level(logging.INFO):
+        create_app(_LimitConfig)
+
+    messages = " ".join(record.getMessage() for record in caplog.records)
+    assert "RATELIMIT_STORAGE_URI" in messages
+    assert "memory://" in messages
+    assert "per process" in messages
+
+
+def test_proxy_fix_is_only_applied_behind_a_trusted_proxy():
+    """With PROXY_FIX_HOPS=0 a spoofed X-Forwarded-For must be ignored."""
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    from app import create_app
+
+    class _NoProxyConfig(Config):
+        PROXY_FIX_HOPS = 0
+
+    app = create_app(_NoProxyConfig)
+    assert not isinstance(app.wsgi_app, ProxyFix)
+
+    class _OneProxyConfig(Config):
+        PROXY_FIX_HOPS = 1
+
+    app = create_app(_OneProxyConfig)
+    assert isinstance(app.wsgi_app, ProxyFix)
+
+
+def test_spoofed_forwarded_for_is_ignored_without_a_trusted_proxy():
+    """Without a trusted proxy the app must not believe X-Forwarded-For."""
+    from flask import request
+
+    from app import create_app
+
+    def _ip_app(hops):
+        class _Cfg(Config):
+            PROXY_FIX_HOPS = hops
+
+        app = create_app(_Cfg)
+
+        @app.get("/_client-ip")
+        def _client_ip():
+            return {"ip": request.remote_addr}
+
+        return app
+
+    # No trusted proxy: the header is ignored, the peer address is used.
+    with _ip_app(0).test_client() as c:
+        r = c.get(
+            "/_client-ip",
+            headers={"X-Forwarded-For": "203.0.113.7"},
+            environ_overrides={"REMOTE_ADDR": "10.0.0.1"},
+        )
+        assert r.get_json()["ip"] == "10.0.0.1"
+
+    # One trusted proxy: the header is the proxy's own report of the client.
+    with _ip_app(1).test_client() as c:
+        r = c.get(
+            "/_client-ip",
+            headers={"X-Forwarded-For": "203.0.113.7"},
+            environ_overrides={"REMOTE_ADDR": "10.0.0.1"},
+        )
+        assert r.get_json()["ip"] == "203.0.113.7"
+
+
+def test_negative_proxy_hops_is_refused(monkeypatch):
+    import importlib
+    import config
+
+    try:
+        monkeypatch.setenv("PROXY_FIX_HOPS", "-1")
+        importlib.reload(config)
+    except RuntimeError as exc:
+        assert "PROXY_FIX_HOPS" in str(exc)
+    else:  # pragma: no cover - only reached on a regression
+        raise AssertionError("a negative proxy hop count must be refused")
+    finally:
+        monkeypatch.undo()
+        importlib.reload(config)  # restore module state
+
+
 def test_forgot_and_reset_password(client):
     register(client)
     old = _login(client)

@@ -159,6 +159,11 @@ class Config:
         "PROXY_FIX_HOPS",
         "0" if (FLASK_DEBUG or os.getenv("TESTING", "0") == "1") else "1",
     ))
+    if PROXY_FIX_HOPS < 0:
+        raise RuntimeError(
+            "PROXY_FIX_HOPS must be 0 or greater: it counts the trusted reverse "
+            "proxies in front of the app (0 = none, 1 = a single load balancer)."
+        )
 
     # Per-IP rate limiting (Flask-Limiter). Disabled in tests.
     RATELIMIT_ENABLED = os.getenv("RATELIMIT_ENABLED", "true").lower() == "true"

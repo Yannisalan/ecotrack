@@ -99,7 +99,25 @@ limiting entirely).
 `ProxyFix` is only applied when the count is greater than zero, so a direct
 connection never trusts a spoofable header.
 
-## 4. CORS
+## 4. Rate limit storage
+
+Flask-Limiter keeps its counters in `RATELIMIT_STORAGE_URI`:
+
+| Value | Behaviour |
+| --- | --- |
+| `memory://` (default) | Counters live in the process. They reset on every restart, and every worker keeps its own set. |
+| `redis://HOST:PORT/0` | Counters live in a shared store. Correct for more than one worker. Requires the `redis` package (`pip install redis`). |
+
+`memory://` is acceptable for the current deployment, because `render.yaml`
+pins `gunicorn --workers 1`. The app logs this at startup, and logs a
+**warning** instead of an informational message when `WEB_CONCURRENCY` is
+greater than one, because with N workers a client can make N times the
+attempt rate the limit was meant to allow.
+
+Before scaling out, set `RATELIMIT_STORAGE_URI` to a shared store and add the
+driver package to `backend/requirements.txt`.
+
+## 5. CORS
 
 `CORS_ORIGINS` takes a comma-separated list of **exact** origins. Wildcards
 are refused, and an unset value means no cross-origin request is allowed.
