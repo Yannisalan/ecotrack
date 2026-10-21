@@ -94,6 +94,7 @@ class _PointsHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onHero = context.eco.onPrimary;
     return GradientHero(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +102,7 @@ class _PointsHero extends StatelessWidget {
           Text(
             'ECO POINTS',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.white70,
+              color: onHero.withValues(alpha: 0.7),
               letterSpacing: 1,
               fontWeight: FontWeight.w700,
             ),
@@ -110,7 +111,7 @@ class _PointsHero extends StatelessWidget {
           Text(
             '${provider.points}',
             style: theme.textTheme.displaySmall?.copyWith(
-              color: Colors.white,
+              color: onHero,
               fontWeight: FontWeight.w800,
               height: 1,
             ),
@@ -118,7 +119,7 @@ class _PointsHero extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${provider.completedCount} of ${provider.challenges.length} challenges completed in this period',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white),
+            style: theme.textTheme.bodySmall?.copyWith(color: onHero),
           ),
         ],
       ),
@@ -174,6 +175,7 @@ class _ChallengeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final eco = context.eco;
     final completed = challenge['completed'] == true;
     final target = (challenge['target'] as num?)?.toDouble() ?? 1;
     final progress = (challenge['progress'] as num?)?.toDouble() ?? 0;
@@ -187,7 +189,7 @@ class _ChallengeCard extends StatelessWidget {
         children: [
           TintedIcon(
             icon: completed ? Icons.check_circle : _challengeIcon(challenge),
-            color: completed ? EcoColors.brand : EcoColors.energy,
+            color: completed ? eco.primary : eco.categoryTransport,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -207,7 +209,7 @@ class _ChallengeCard extends StatelessWidget {
                     Text(
                       '+$reward pts',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: EcoColors.amber,
+                        color: eco.warning,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -226,7 +228,7 @@ class _ChallengeCard extends StatelessWidget {
                     Expanded(
                       child: EcoProgressBar(
                         value: fraction,
-                        color: completed ? EcoColors.brand : EcoColors.energy,
+                        color: completed ? eco.primary : eco.categoryTransport,
                         height: 5,
                       ),
                     ),
@@ -236,7 +238,7 @@ class _ChallengeCard extends StatelessWidget {
                           ? 'Done'
                           : '${progress.toStringAsFixed(0)}/${target.toStringAsFixed(0)}',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: completed ? EcoColors.brand : context.muted,
+                        color: completed ? eco.primary : context.muted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -265,7 +267,7 @@ class _HistoryCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, size: 20, color: EcoColors.brand),
+          Icon(Icons.check_circle, size: 20, color: context.eco.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -289,7 +291,7 @@ class _HistoryCard extends StatelessWidget {
           Text(
             '+$reward',
             style: theme.textTheme.labelMedium?.copyWith(
-              color: EcoColors.amber,
+              color: context.eco.warning,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -311,7 +313,7 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off, size: 34, color: EcoColors.rose),
+          Icon(Icons.cloud_off, size: 34, color: context.eco.danger),
           const SizedBox(height: 8),
           Text(
             message,
@@ -337,7 +339,7 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(Icons.flag_outlined, size: 34, color: EcoColors.brand),
+          Icon(Icons.flag_outlined, size: 34, color: context.eco.primary),
           const SizedBox(height: 8),
           Text(
             'No challenges available',

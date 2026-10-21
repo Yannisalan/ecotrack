@@ -13,6 +13,7 @@ class AnalyticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final dashboard = context.watch<DashboardProvider>();
     final theme = Theme.of(context);
+    final onHero = context.eco.onPrimary;
     final summary = dashboard.summary;
     final score = dashboard.score;
 
@@ -54,7 +55,7 @@ class AnalyticsScreen extends StatelessWidget {
                     Text(
                       'Carbon footprint metrics & trend breakdown',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: EcoColors.brand,
+                        color: context.eco.primary,
                       ),
                     ),
                   ],
@@ -96,7 +97,7 @@ class AnalyticsScreen extends StatelessWidget {
                         style: theme.textTheme.labelSmall?.copyWith(
                           letterSpacing: 1,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: onHero.withValues(alpha: 0.85),
                         ),
                       ),
                     ),
@@ -106,13 +107,13 @@ class AnalyticsScreen extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: onHero.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         score?['grade'] as String? ?? 'No data',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white,
+                          color: onHero,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -127,7 +128,7 @@ class AnalyticsScreen extends StatelessWidget {
                     Text(
                       ecoFormatKg(total),
                       style: theme.textTheme.displaySmall?.copyWith(
-                        color: Colors.white,
+                        color: onHero,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -135,7 +136,7 @@ class AnalyticsScreen extends StatelessWidget {
                     Text(
                       'kg CO₂',
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: onHero.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -147,11 +148,11 @@ class AnalyticsScreen extends StatelessWidget {
                       ? 'Log activities to build your trend.'
                       : 'Across ${score!['active_days']} active ${score['active_days'] == 1 ? 'day' : 'days'} in the last ${summary?['days']} days.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: onHero.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 14),
-                Divider(color: Colors.white.withValues(alpha: 0.3), height: 1),
+                Divider(color: onHero.withValues(alpha: 0.3), height: 1),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -243,7 +244,11 @@ class AnalyticsScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(meta.icon, size: 15, color: meta.color),
+                            Icon(
+                              meta.icon,
+                              size: 15,
+                              color: meta.colorOf(context),
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -262,7 +267,10 @@ class AnalyticsScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 6),
-                        EcoProgressBar(value: share, color: meta.color),
+                        EcoProgressBar(
+                          value: share,
+                          color: meta.colorOf(context),
+                        ),
                       ],
                     ),
                   );
@@ -286,16 +294,17 @@ class _Equivalence extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onHero = context.eco.onPrimary;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.9)),
+        Icon(icon, size: 16, color: onHero.withValues(alpha: 0.9)),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             text,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
+              color: onHero,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -345,7 +354,7 @@ class _DailyBars extends StatelessWidget {
                       height: (values[i] / maxVal) * 96 + 3,
                       decoration: BoxDecoration(
                         color: values[i] > 0
-                            ? EcoColors.brand
+                            ? context.eco.primary
                             : context.hairline,
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(5),
@@ -403,6 +412,7 @@ class _SdgTargetsState extends State<_SdgTargets> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final eco = context.eco;
     return EcoCard(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -410,7 +420,7 @@ class _SdgTargetsState extends State<_SdgTargets> {
         children: [
           Row(
             children: [
-              const Icon(Icons.public, size: 16, color: EcoColors.brand),
+              Icon(Icons.public, size: 16, color: context.eco.primary),
               const SizedBox(width: 6),
               Text(
                 'UN SDG IMPACT AREAS',
@@ -443,14 +453,12 @@ class _SdgTargetsState extends State<_SdgTargets> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: expanded
-                        ? EcoColors.brand.withValues(alpha: 0.08)
-                        : (context.isDark
-                              ? EcoColors.darkBg
-                              : const Color(0xFFF6FBF8)),
+                        ? eco.primary.withValues(alpha: 0.08)
+                        : eco.surfaceElevated,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: expanded
-                          ? EcoColors.brand
+                          ? eco.borderStrong
                           : Theme.of(context).colorScheme.surface,
                     ),
                   ),
@@ -470,7 +478,7 @@ class _SdgTargetsState extends State<_SdgTargets> {
                           Text(
                             '${(share * 100).round()}%',
                             style: theme.textTheme.labelMedium?.copyWith(
-                              color: EcoColors.brand,
+                              color: eco.primary,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -488,7 +496,7 @@ class _SdgTargetsState extends State<_SdgTargets> {
                       const SizedBox(height: 8),
                       EcoProgressBar(
                         value: share,
-                        color: meta.color,
+                        color: meta.colorOf(context),
                         height: 6,
                       ),
                       if (expanded) ...[
@@ -527,7 +535,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, size: 40, color: EcoColors.rose),
+            Icon(Icons.cloud_off, size: 40, color: context.eco.danger),
             const SizedBox(height: 10),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),

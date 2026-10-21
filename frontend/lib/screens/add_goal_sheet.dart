@@ -61,7 +61,7 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
       return;
     }
     if (target == null || target <= 0) {
-      setState(() => _error = 'Target must be a number greater than 0.');
+      setState(() => _error = 'Target must be a positive number.');
       return;
     }
     setState(() {
@@ -186,10 +186,10 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.event_outlined,
                         size: 18,
-                        color: EcoColors.brand,
+                        color: context.eco.primary,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -215,7 +215,7 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
                 Text(
                   _error!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: EcoColors.rose,
+                    color: context.eco.danger,
                   ),
                 ),
               ],
@@ -225,12 +225,12 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
                 child: FilledButton.icon(
                   onPressed: _saving ? null : _save,
                   icon: _saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: context.eco.onPrimary,
                           ),
                         )
                       : const Icon(Icons.flag_outlined, size: 18),

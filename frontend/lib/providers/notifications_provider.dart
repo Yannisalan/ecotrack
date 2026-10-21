@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/notifications_api.dart';
 
 class NotificationsProvider extends ChangeNotifier {
@@ -31,7 +32,7 @@ class NotificationsProvider extends ChangeNotifier {
       unread = (data['unread'] as num?)?.toInt() ?? _countUnread();
     } on ApiException catch (e) {
       if (id != _requestId) return;
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();
@@ -90,7 +91,7 @@ class NotificationsProvider extends ChangeNotifier {
       preferences =
           Map<String, dynamic>.from(data['preferences'] as Map? ?? const {});
     } on ApiException catch (e) {
-      preferencesError = e.message;
+      preferencesError = friendlyError(e);
     }
     preferencesLoading = false;
     notifyListeners();
@@ -111,7 +112,7 @@ class NotificationsProvider extends ChangeNotifier {
       return true;
     } on ApiException catch (e) {
       preferences = before;
-      preferencesError = e.message;
+      preferencesError = friendlyError(e);
       notifyListeners();
       return false;
     }

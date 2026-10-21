@@ -3,8 +3,9 @@ import '../theme/app_theme.dart';
 import 'eco_meta.dart';
 import 'eco_score_gauge.dart';
 
-/// Illustrated "Eco Biome" scene from the reference: sky->emerald gradient,
-/// sun, rolling hills and a hotspot per pillar weighted by its real share.
+/// Illustrated "Eco Biome" scene: sky→emerald gradient, sun, rolling hills and
+/// a hotspot per pillar weighted by its real share. Colours come from tokens
+/// so the scene inverts correctly between modes.
 class EcoBiome extends StatelessWidget {
   const EcoBiome({
     super.key,
@@ -17,6 +18,7 @@ class EcoBiome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final active = pillars.where((p) => p.share > 0).toList()
       ..sort((a, b) => b.share.compareTo(a.share));
     final theme = Theme.of(context);
@@ -25,11 +27,11 @@ class EcoBiome extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(EcoTheme.cardRadius),
-        gradient: const LinearGradient(
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF38BDF8), Color(0xFF6EE7B7), Color(0xFF059669)],
+          colors: [eco.biomeSky, eco.biomeMint, eco.biomeDeep],
         ),
       ),
       child: Stack(
@@ -42,10 +44,10 @@ class EcoBiome extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFFDE68A).withValues(alpha: 0.85),
+                color: eco.sunGlow.withValues(alpha: 0.85),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
+                    color: eco.sunGlow.withValues(alpha: 0.8),
                     blurRadius: 40,
                   ),
                 ],
@@ -58,7 +60,10 @@ class EcoBiome extends StatelessWidget {
             bottom: 0,
             child: CustomPaint(
               size: Size(double.infinity, height * 0.55),
-              painter: _HillsPainter(),
+              painter: _HillsPainter(
+                far: eco.biomeMint.withValues(alpha: 0.55),
+                near: eco.biomeDeep.withValues(alpha: 0.85),
+              ),
             ),
           ),
           if (active.isEmpty)
@@ -69,7 +74,7 @@ class EcoBiome extends StatelessWidget {
                   child: Text(
                     'Log an activity to grow your biome',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: Colors.white,
+                      color: eco.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -84,19 +89,20 @@ class EcoBiome extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.85),
+                color: eco.surface.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: eco.border),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.spa_outlined, size: 14, color: Color(0xFF047857)),
-                  SizedBox(width: 5),
+                  Icon(Icons.spa_outlined, size: 14, color: eco.primary),
+                  const SizedBox(width: 5),
                   Text(
                     'Living Eco-Sanctuary',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF047857),
+                      color: eco.primary,
                     ),
                   ),
                 ],
@@ -114,6 +120,7 @@ class EcoBiome extends StatelessWidget {
     int index,
     int count,
   ) {
+    final eco = context.eco;
     final base = 0.22 + 0.5 * (index / (count == 0 ? 1 : count));
     return Positioned(
       left: 24.0 + (index * 62) % 250,
@@ -125,17 +132,17 @@ class EcoBiome extends StatelessWidget {
           height: 34 + pillar.share * 26,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: pillar.color.withValues(alpha: 0.85),
-            border: Border.all(color: Colors.white, width: 2),
+            color: pillar.color.withValues(alpha: 0.9),
+            border: Border.all(color: eco.surface, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: eco.shadow,
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: const Icon(Icons.eco, color: Colors.white, size: 16),
+          child: Icon(Icons.eco, color: eco.onPrimary, size: 16),
         ),
       ),
     );
@@ -143,10 +150,15 @@ class EcoBiome extends StatelessWidget {
 }
 
 class _HillsPainter extends CustomPainter {
+  _HillsPainter({required this.far, required this.near});
+
+  final Color far;
+  final Color near;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final far = Paint()..color = const Color(0xFF34D399).withValues(alpha: 0.55);
-    final near = Paint()..color = const Color(0xFF047857).withValues(alpha: 0.85);
+    final farPaint = Paint()..color = far;
+    final nearPaint = Paint()..color = near;
 
     final farPath = Path()
       ..moveTo(0, size.height * 0.5)
@@ -165,7 +177,7 @@ class _HillsPainter extends CustomPainter {
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
-    canvas.drawPath(farPath, far);
+    canvas.drawPath(farPath, farPaint);
 
     final nearPath = Path()
       ..moveTo(0, size.height * 0.8)
@@ -184,9 +196,9 @@ class _HillsPainter extends CustomPainter {
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
-    canvas.drawPath(nearPath, near);
+    canvas.drawPath(nearPath, nearPaint);
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(_HillsPainter old) => old.far != far || old.near != near;
 }

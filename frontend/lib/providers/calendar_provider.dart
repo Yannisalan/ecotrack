@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/stats_api.dart';
 
 String monthKey(DateTime d) =>
@@ -28,7 +29,7 @@ class CalendarProvider extends ChangeNotifier {
       days = (data['days'] as List? ?? const [])
           .cast<Map<String, dynamic>>();
     } on ApiException catch (e) {
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();

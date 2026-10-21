@@ -1,212 +1,357 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'eco_colors.dart';
 
-/// Design tokens copied from the reference React app (`src/index.css`).
-/// Light: bg #F4FBF7 / text #0F172A. Dark: bg #08120D / surface #0E2018.
-class EcoColors {
-  const EcoColors._();
+export 'eco_colors.dart';
 
-  static const brand = Color(0xFF10B981); // emerald-600
-  static const brandDark = Color(0xFF0E9F6E);
-  static const brandLight = Color(0xFF34D399);
+/// Typography scale. Display/headline/big numbers use a techy geometric font;
+/// body copy uses Inter. Metrics use tabular figures.
+class AppTextStyles {
+  const AppTextStyles._();
 
-  static const mobility = Color(0xFF10B981);
-  static const energy = Color(0xFFF59E0B);
-  static const water = Color(0xFF0284C7);
-  static const waste = Color(0xFFD97706);
+  static TextTheme _base(Color textColor, Color muted) {
+    final display = GoogleFonts.spaceGroteskTextTheme();
+    final body = GoogleFonts.interTextTheme();
 
-  static const lightBg = Color(0xFFF4FBF7);
-  static const lightSurface = Colors.white;
-  static const lightBorder = Color(0xFFE2E8F0);
-  static const lightText = Color(0xFF0F172A);
-  static const lightMuted = Color(0xFF64748B);
+    TextStyle headline(TextStyle? s) => (s ?? const TextStyle()).copyWith(
+      color: textColor,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.2,
+    );
 
-  static const darkBg = Color(0xFF08120D);
-  static const darkSurface = Color(0xFF0E2018);
-  static const darkHeader = Color(0xFF0A1812);
-  static const darkBorder = Color(0xFF133F2E);
-  static const darkText = Color(0xFFF1F5F9);
-  static const darkMuted = Color(0xFF94A3B8);
+    return TextTheme(
+      displayLarge: headline(display.displayLarge),
+      displayMedium: headline(display.displayMedium),
+      displaySmall: headline(display.displaySmall),
+      headlineLarge: headline(display.headlineLarge),
+      headlineMedium: headline(display.headlineMedium),
+      headlineSmall: headline(display.headlineSmall),
+      titleLarge: headline(display.titleLarge),
+      titleMedium: (display.titleMedium ?? const TextStyle()).copyWith(
+        color: textColor,
+        fontWeight: FontWeight.w700,
+      ),
+      titleSmall: (display.titleSmall ?? const TextStyle()).copyWith(
+        color: textColor,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: (body.bodyLarge ?? const TextStyle()).copyWith(
+        color: textColor,
+      ),
+      bodyMedium: (body.bodyMedium ?? const TextStyle()).copyWith(
+        color: textColor,
+      ),
+      bodySmall: (body.bodySmall ?? const TextStyle()).copyWith(color: muted),
+      labelLarge: (body.labelLarge ?? const TextStyle()).copyWith(
+        color: textColor,
+        fontWeight: FontWeight.w600,
+      ),
+      labelMedium: (body.labelMedium ?? const TextStyle()).copyWith(
+        color: textColor,
+        fontWeight: FontWeight.w600,
+      ),
+      labelSmall: (body.labelSmall ?? const TextStyle()).copyWith(color: muted),
+    );
+  }
 
-  static const sky = Color(0xFF0EA5E9);
-  static const amber = Color(0xFFF59E0B);
-  static const rose = Color(0xFFF43F5E);
+  /// A tabular-figure style for CO2 values and the Eco Score (glow applied by
+  /// the [GlowText] widget).
+  static TextStyle metric(Color color, {double size = 28}) =>
+      GoogleFonts.spaceGrotesk(
+        fontSize: size,
+        fontWeight: FontWeight.w700,
+        color: color,
+        height: 1,
+        letterSpacing: -0.5,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
 }
 
-class EcoTheme {
-  const EcoTheme._();
+/// Builds the full light/dark [ThemeData] plus the [EcoColors] extension.
+class AppTheme {
+  const AppTheme._();
 
-  static const double cardRadius = 24;
+  static const double cardRadius = 18;
+  static const double smallRadius = 12;
+  static const double fieldRadius = 14;
 
-  static ThemeData light() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: EcoColors.brand,
-      brightness: Brightness.light,
-    ).copyWith(
-      primary: EcoColors.brand,
-      onPrimary: Colors.white,
-      surface: EcoColors.lightSurface,
-      onSurface: EcoColors.lightText,
+  static ThemeData light() => _build(EcoColors.light);
+  static ThemeData dark() => _build(EcoColors.dark);
+
+  static ThemeData _build(EcoColors eco) {
+    final isDark = eco.brightness == Brightness.dark;
+    final text = AppTextStyles._base(eco.textPrimary, eco.textSecondary);
+
+    final scheme = ColorScheme(
+      brightness: eco.brightness,
+      primary: eco.primary,
+      onPrimary: eco.onPrimary,
+      secondary: eco.secondary,
+      onSecondary: eco.onPrimary,
+      error: eco.danger,
+      onError: isDark ? const Color(0xFF2A060C) : Colors.white,
+      surface: eco.surface,
+      onSurface: eco.textPrimary,
+      surfaceContainerHighest: eco.surfaceElevated,
+      onSurfaceVariant: eco.textSecondary,
+      outline: eco.border,
+      outlineVariant: eco.border,
+      shadow: eco.shadow,
+      scrim: eco.scrim,
+      inverseSurface: eco.snackBackground,
+      onInverseSurface: eco.snackForeground,
+      tertiary: eco.accent,
+      onTertiary: eco.onPrimary,
     );
-    return _base(scheme).copyWith(scaffoldBackgroundColor: EcoColors.lightBg);
-  }
 
-  static ThemeData dark() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: EcoColors.brand,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: EcoColors.brand,
-      onPrimary: Colors.white,
-      surface: EcoColors.darkSurface,
-      onSurface: EcoColors.darkText,
-    );
-    return _base(scheme).copyWith(scaffoldBackgroundColor: EcoColors.darkBg);
-  }
+    final borderSide = BorderSide(color: eco.border);
 
-  static ThemeData _base(ColorScheme scheme) {
     return ThemeData(
-      colorScheme: scheme,
       useMaterial3: true,
+      brightness: eco.brightness,
+      colorScheme: scheme,
+      textTheme: text,
+      scaffoldBackgroundColor: eco.background,
+      canvasColor: eco.background,
       splashFactory: InkSparkle.splashFactory,
+      extensions: <ThemeExtension<dynamic>>[eco],
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        foregroundColor: scheme.onSurface,
+        foregroundColor: eco.textPrimary,
+        titleTextStyle: text.titleLarge,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: scheme.surface,
+        color: eco.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
-          side: BorderSide(
-            color: scheme.brightness == Brightness.light
-                ? EcoColors.lightBorder
-                : EcoColors.darkBorder,
-          ),
+          side: borderSide,
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: scheme.brightness == Brightness.light
-            ? EcoColors.lightBorder
-            : EcoColors.darkBorder,
+        color: eco.border,
         thickness: 1,
         space: 1,
       ),
+      iconTheme: IconThemeData(color: eco.textSecondary),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: EcoColors.brand,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: const StadiumBorder(),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.disabled)
+                ? (isDark ? eco.surfaceElevated : eco.track)
+                : eco.primary,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.disabled)
+                ? eco.textDisabled
+                : eco.onPrimary,
+          ),
+          overlayColor: WidgetStatePropertyAll(eco.onPrimary.withValues(alpha: 0.12)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          ),
+          shape: const WidgetStatePropertyAll(StadiumBorder()),
+          textStyle: WidgetStatePropertyAll(
+            text.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: scheme.onSurface,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: const StadiumBorder(),
-          side: BorderSide(
-            color: scheme.brightness == Brightness.light
-                ? EcoColors.lightBorder
-                : EcoColors.darkBorder,
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.disabled) ? eco.textDisabled : eco.primary,
+          ),
+          overlayColor: WidgetStatePropertyAll(eco.primary.withValues(alpha: 0.08)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          ),
+          shape: const WidgetStatePropertyAll(StadiumBorder()),
+          side: WidgetStateProperty.resolveWith(
+            (s) => BorderSide(
+              color: s.contains(WidgetState.disabled) ? eco.border : eco.primary,
+            ),
+          ),
+          textStyle: WidgetStatePropertyAll(
+            text.labelLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: EcoColors.brand),
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.disabled) ? eco.textDisabled : eco.primary,
+          ),
+          overlayColor: WidgetStatePropertyAll(eco.primary.withValues(alpha: 0.08)),
+          textStyle: WidgetStatePropertyAll(
+            text.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: eco.primary,
+        foregroundColor: eco.onPrimary,
+        elevation: 4,
       ),
       chipTheme: ChipThemeData(
         shape: const StadiumBorder(),
-        side: BorderSide(
-          color: scheme.brightness == Brightness.light
-              ? EcoColors.lightBorder
-              : EcoColors.darkBorder,
-        ),
-        backgroundColor: scheme.surface,
-        selectedColor: EcoColors.brand,
-        labelStyle: TextStyle(
-          fontWeight: FontWeight.w500,
-          color: scheme.onSurface,
-        ),
-        secondaryLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+        side: borderSide,
+        backgroundColor: eco.surface,
+        selectedColor: eco.primary,
+        labelStyle: text.labelMedium!,
+        secondaryLabelStyle: text.labelMedium!.copyWith(color: eco.onPrimary),
         showCheckmark: false,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.brightness == Brightness.light
-            ? Colors.white
-            : EcoColors.darkBg,
+        fillColor: eco.fieldFill,
+        hintStyle: text.bodyMedium?.copyWith(color: eco.textDisabled),
+        labelStyle: text.bodyMedium?.copyWith(color: eco.textSecondary),
+        errorStyle: text.bodySmall?.copyWith(color: eco.danger),
+        prefixIconColor: eco.textSecondary,
+        suffixIconColor: eco.textSecondary,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: scheme.brightness == Brightness.light
-                ? EcoColors.lightBorder
-                : EcoColors.darkBorder,
-          ),
+          borderRadius: BorderRadius.circular(fieldRadius),
+          borderSide: borderSide,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: scheme.brightness == Brightness.light
-                ? EcoColors.lightBorder
-                : EcoColors.darkBorder,
-          ),
+          borderRadius: BorderRadius.circular(fieldRadius),
+          borderSide: borderSide,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: EcoColors.brand, width: 1.5),
+          borderRadius: BorderRadius.circular(fieldRadius),
+          borderSide: BorderSide(color: eco.primary, width: 1.6),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(fieldRadius),
+          borderSide: BorderSide(color: eco.danger),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(fieldRadius),
+          borderSide: BorderSide(color: eco.danger, width: 1.6),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(fieldRadius),
+          borderSide: BorderSide(color: eco.border),
         ),
       ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(eco.surfaceElevated),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(smallRadius)),
+          ),
+          side: WidgetStatePropertyAll(borderSide),
+        ),
+        textStyle: text.bodyMedium,
+      ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: eco.surface,
         surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: eco.surface,
+        dragHandleColor: eco.border,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: eco.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
+          side: borderSide,
         ),
+        titleTextStyle: text.titleLarge,
+        contentTextStyle: text.bodyMedium,
       ),
-      snackBarTheme: const SnackBarThemeData(
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: eco.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: eco.primary.withValues(alpha: isDark ? 0.18 : 0.12),
+        headerForegroundColor: eco.textPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: borderSide,
+        ),
+        dayForegroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? eco.onPrimary : eco.textPrimary,
+        ),
+        dayBackgroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? eco.primary : Colors.transparent,
+        ),
+        todayForegroundColor: WidgetStatePropertyAll(eco.primary),
+        todayBorder: BorderSide(color: eco.primary),
+      ),
+      snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF0F172A),
-        contentTextStyle: TextStyle(color: Colors.white),
+        backgroundColor: eco.snackBackground,
+        contentTextStyle: text.bodyMedium?.copyWith(color: eco.snackForeground),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(smallRadius)),
       ),
-      sliderTheme: const SliderThemeData(activeTrackColor: EcoColors.brand),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: EcoColors.brand,
+      sliderTheme: SliderThemeData(
+        activeTrackColor: eco.primary,
+        inactiveTrackColor: eco.track,
+        thumbColor: eco.primary,
+        overlayColor: eco.primary.withValues(alpha: 0.15),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: eco.primary,
+        linearTrackColor: eco.track,
+        circularTrackColor: eco.track,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? Colors.white
-              : null,
+          (s) => s.contains(WidgetState.selected) ? eco.onPrimary : eco.textSecondary,
         ),
         trackColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? EcoColors.brand
-              : null,
+          (s) => s.contains(WidgetState.selected) ? eco.primary : eco.track,
         ),
+        trackOutlineColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? eco.borderStrong : eco.border,
+        ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? eco.primary : Colors.transparent,
+        ),
+        checkColor: WidgetStatePropertyAll(eco.onPrimary),
+        side: BorderSide(color: eco.borderStrong),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? eco.primary : eco.textSecondary,
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: eco.textSecondary,
+        textColor: eco.textPrimary,
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: eco.surfaceElevated,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: eco.border),
+        ),
+        textStyle: text.bodySmall?.copyWith(color: eco.textPrimary),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: eco.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(smallRadius),
+          side: borderSide,
+        ),
+        textStyle: text.bodyMedium,
       ),
     );
   }
 }
 
-/// Soft helpers used across the redesign.
-extension EcoTextStyles on BuildContext {
-  bool get isDark => Theme.of(this).brightness == Brightness.dark;
-  Color get muted =>
-      isDark ? EcoColors.darkMuted : EcoColors.lightMuted;
-  Color get hairline =>
-      isDark ? EcoColors.darkBorder : EcoColors.lightBorder;
-}
+/// Backwards-compatible alias; the design layer lives in [AppTheme] now.
+typedef EcoTheme = AppTheme;

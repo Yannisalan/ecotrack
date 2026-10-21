@@ -235,7 +235,7 @@ def test_notifications_generated_on_login(client):
     """Registering seeds onboarding; a fresh login regenerates reminders."""
     r = client.post('/api/auth/register', json={
         'name': 'Login User', 'email': 'login_gen@example.com',
-        'password': 'Str0ng!Passw0rd',
+        'password': 'Str0ng!Passw0rd', 'terms_accepted': True,
     })
     assert r.status_code == 201
     token = r.get_json()['access_token']

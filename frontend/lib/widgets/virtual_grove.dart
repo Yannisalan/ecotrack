@@ -14,6 +14,7 @@ class VirtualGrove extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     final trees = activities ~/ perTree;
     final intoCurrent = activities % perTree;
@@ -34,13 +35,13 @@ class VirtualGrove extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
               decoration: BoxDecoration(
-                color: EcoColors.brand.withValues(alpha: 0.14),
+                color: eco.primary.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
                 '$trees ${trees == 1 ? 'tree' : 'trees'}',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: EcoColors.brand,
+                  color: eco.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -50,23 +51,20 @@ class VirtualGrove extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           '1 tree for every $perTree logged activities',
-          style: theme.textTheme.bodySmall?.copyWith(color: context.muted),
+          style: theme.textTheme.bodySmall?.copyWith(color: eco.textSecondary),
         ),
         const SizedBox(height: 12),
         if (trees == 0)
           EcoCard(
             child: Row(
               children: [
-                const TintedIcon(
-                  icon: Icons.park_outlined,
-                  color: EcoColors.brand,
-                ),
+                TintedIcon(icon: Icons.park_outlined, color: eco.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Your grove is empty. Log activities to plant your first tree.',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: context.muted,
+                      color: eco.textSecondary,
                     ),
                   ),
                 ),
@@ -85,15 +83,13 @@ class VirtualGrove extends StatelessWidget {
                   height: 76,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: context.isDark
-                        ? EcoColors.darkBg
-                        : const Color(0xFFE8F3ED),
+                    color: eco.track,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     '+${trees - shown}',
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: context.muted,
+                      color: eco.textSecondary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -110,7 +106,7 @@ class VirtualGrove extends StatelessWidget {
             Text(
               '$intoCurrent/$perTree to next tree',
               style: theme.textTheme.labelSmall?.copyWith(
-                color: context.muted,
+                color: eco.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -128,12 +124,13 @@ class _TreeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
-    const tones = [
-      EcoColors.brand,
-      Color(0xFF34D399),
-      Color(0xFF0E9F6E),
-      Color(0xFF059669),
+    final tones = [
+      eco.primary,
+      eco.secondary,
+      eco.accent,
+      eco.categoryWaste,
     ];
     final tone = tones[index % tones.length];
     return Container(

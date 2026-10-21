@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../services/challenges_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 
 class ChallengesProvider extends ChangeNotifier {
   final ApiService api;
@@ -32,7 +33,7 @@ class ChallengesProvider extends ChangeNotifier {
       points = (data['points'] as num?)?.toInt() ?? 0;
       completedTotal = (data['completed_total'] as num?)?.toInt() ?? 0;
     } on ApiException catch (e) {
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();

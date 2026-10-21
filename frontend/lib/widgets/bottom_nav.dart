@@ -16,7 +16,7 @@ const ecoNavItems = <EcoNavItem>[
   EcoNavItem(Icons.person_outline, Icons.person_rounded, 'You'),
 ];
 
-/// Fixed bottom navigation matching the reference (5 tabs, emerald active).
+/// Floating bottom navigation (5 tabs, neon active).
 class EcoBottomNav extends StatelessWidget {
   const EcoBottomNav({
     super.key,
@@ -29,22 +29,14 @@ class EcoBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
-    final dark = context.isDark;
     return Container(
       decoration: BoxDecoration(
-        color: (dark ? EcoColors.darkSurface : Colors.white).withValues(
-          alpha: 0.96,
-        ),
-        border: Border.all(color: context.hairline),
+        color: eco.surface.withValues(alpha: 0.96),
+        border: Border.all(color: eco.border),
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? 0.4 : 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: eco.shadow, blurRadius: 12, offset: const Offset(0, 2))],
       ),
       margin: EdgeInsets.only(
         left: 16,
@@ -92,7 +84,8 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? EcoColors.brand : context.muted;
+    final eco = context.eco;
+    final color = selected ? eco.primary : eco.textSecondary;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -111,7 +104,7 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-/// Floating "Log Action" pill that sits above the nav bar (reference FAB).
+/// Floating "Log Action" pill that sits above the nav bar.
 class LogActionFab extends StatelessWidget {
   const LogActionFab({super.key, required this.onTap});
 
@@ -119,25 +112,26 @@ class LogActionFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     return Material(
-      color: EcoColors.brand,
+      color: eco.primary,
       borderRadius: BorderRadius.circular(999),
       elevation: 6,
-      shadowColor: EcoColors.brand.withValues(alpha: 0.6),
+      shadowColor: eco.glow,
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: onTap,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, color: Colors.white, size: 19),
-              SizedBox(width: 6),
+              Icon(Icons.add, color: eco.onPrimary, size: 19),
+              const SizedBox(width: 6),
               Text(
                 'Log Action',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: eco.onPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 13.5,
                 ),

@@ -383,9 +383,9 @@ def calendar():
         year, month = (int(part) for part in raw.split("-"))
         start = date(year, month, 1)
     except (ValueError, TypeError):
-        return jsonify(error="month must be YYYY-MM"), 400
+        return jsonify(error="Please choose a valid month and try again."), 400
     if not 1 <= month <= 12:
-        return jsonify(error="month must be YYYY-MM"), 400
+        return jsonify(error="Please choose a valid month and try again."), 400
     end = date(year + (month // 12), (month % 12) + 1, 1) - timedelta(days=1)
 
     uid = _uid()

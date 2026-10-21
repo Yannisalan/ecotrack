@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -53,7 +54,7 @@ class AuthProvider extends ChangeNotifier {
       } else {
         // Transient: keep the stored session and let the user retry.
         status = AuthStatus.unknown;
-        restoreError = e.message;
+        restoreError = friendlyError(e);
       }
     }
     notifyListeners();
@@ -70,19 +71,31 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      // Wrong credentials get a specific, expected message.
+      if (e.statusCode == 401) return ErrorMessages.loginFailed;
+      return friendlyError(e);
     }
   }
 
-  Future<String?> register(String name, String email, String password) async {
+  Future<String?> register(
+    String name,
+    String email,
+    String password, {
+    bool termsAccepted = false,
+  }) async {
     try {
-      user = await api.register(name, email, password);
+      user = await api.register(
+        name,
+        email,
+        password,
+        termsAccepted: termsAccepted,
+      );
       status = AuthStatus.authenticated;
       restoreError = null;
       notifyListeners();
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
   }
 
@@ -99,7 +112,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await api.deleteAccount();
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
     await logout();
     return null;
@@ -113,7 +126,7 @@ class AuthProvider extends ChangeNotifier {
       final token = await api.forgotPassword(email);
       return (null, token);
     } on ApiException catch (e) {
-      return (e.message, null);
+      return (friendlyError(e), null);
     }
   }
 
@@ -123,7 +136,7 @@ class AuthProvider extends ChangeNotifier {
       await api.resetPassword(token, password);
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
   }
 
@@ -136,7 +149,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await api.changePassword(currentPassword, newPassword);
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
     await logout();
     return null;

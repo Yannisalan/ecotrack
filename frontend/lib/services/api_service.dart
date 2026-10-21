@@ -3,12 +3,18 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config.dart';
+import 'error_messages.dart';
 import 'token_store.dart';
 
-class ApiException implements Exception {
+class ApiException implements ApiError {
+  @override
   final String message;
+  @override
   final int? statusCode;
-  ApiException(this.message, [this.statusCode]);
+
+  /// True for transport failures (offline / timeout) that have no HTTP status.
+  final bool isNetworkError;
+  ApiException(this.message, [this.statusCode, this.isNetworkError = false]);
 
   bool get isUnauthorized => statusCode == 401;
 
@@ -22,10 +28,9 @@ enum RefreshResult { success, invalid, networkError }
 
 class ApiService {
   static const _timeout = Duration(seconds: 60);
-  static const _networkMessage =
-      'Cannot reach the server. Is the backend running?';
-  static const _timeoutMessage =
-      'The server took too long to respond. Please try again.';
+  // Sourced from the central helper so there is one source of truth.
+  static const _networkMessage = ErrorMessages.network;
+  static const _timeoutMessage = ErrorMessages.timeout;
 
   final http.Client _client;
   late final SessionStore _store;
@@ -111,23 +116,34 @@ class ApiService {
     try {
       final streamed = await _client.send(req).timeout(_timeout);
       res = await http.Response.fromStream(streamed);
-    } on TimeoutException {
-      throw ApiException(_timeoutMessage);
-    } catch (_) {
-      throw ApiException(_networkMessage);
+    } on TimeoutException catch (e, st) {
+      logTechnicalError('$method $path timeout', e, st);
+      throw ApiException(_timeoutMessage, null, true);
+    } catch (e, st) {
+      logTechnicalError('$method $path network', e, st);
+      throw ApiException(_networkMessage, null, true);
     }
     return res;
   }
 
+  /// Converts a failed HTTP response into a friendly [ApiException].
+  ///
+  /// A backend `{"error": "..."}` hint is used only when it passes the central
+  /// safety filter; otherwise the status code is mapped to friendly wording.
+  /// The raw body/status is logged, never surfaced.
   Never _raise(http.Response res) {
     dynamic decoded;
     try {
       decoded = jsonDecode(res.body);
     } catch (_) {}
+    final serverMessage =
+        (decoded is Map && decoded['error'] is String) ? decoded['error'] as String : null;
+    logTechnicalError(
+      'HTTP ${res.statusCode}',
+      'serverMessage=$serverMessage body=${res.body}',
+    );
     throw ApiException(
-      (decoded is Map && decoded['error'] is String)
-          ? decoded['error'] as String
-          : 'Something went wrong (${res.statusCode}).',
+      ErrorMessages.forStatus(res.statusCode, serverMessage: serverMessage),
       res.statusCode,
     );
   }
@@ -168,9 +184,9 @@ class ApiService {
           );
         case RefreshResult.invalid:
           onUnauthorized?.call();
-          _raise(res);
+          throw ApiException(ErrorMessages.unauthorized, 401);
         case RefreshResult.networkError:
-          throw ApiException(_networkMessage);
+          throw ApiException(_networkMessage, null, true);
       }
     }
     _raise(res);
@@ -320,12 +336,18 @@ class ApiService {
   Future<Map<String, dynamic>> register(
     String name,
     String email,
-    String password,
-  ) async {
+    String password, {
+    bool termsAccepted = false,
+  }) async {
     final data = await request(
       'POST',
       '/api/auth/register',
-      body: {'name': name, 'email': email, 'password': password},
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'terms_accepted': termsAccepted,
+      },
       auth: false,
       headers: _platformHeaders,
     );

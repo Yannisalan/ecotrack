@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../services/activity_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 
 class HistoryProvider extends ChangeNotifier {
   final ApiService api;
@@ -35,7 +36,7 @@ class HistoryProvider extends ChangeNotifier {
       total = (data['total'] as num).toInt();
     } on ApiException catch (e) {
       if (id != _requestId) return;
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();
@@ -56,7 +57,7 @@ class HistoryProvider extends ChangeNotifier {
       more = (data['activities'] as List).cast<Map<String, dynamic>>();
       total = (data['total'] as num).toInt();
     } on ApiException catch (e) {
-      if (id == _requestId) error = e.message;
+      if (id == _requestId) error = friendlyError(e);
     }
     if (id == _requestId && more != null) items = [...items, ...more];
     loadingMore = false;
@@ -78,7 +79,7 @@ class HistoryProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
   }
 }

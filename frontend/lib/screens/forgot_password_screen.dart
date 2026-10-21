@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/eco_widgets.dart';
 
 /// Two-step password reset:
@@ -81,9 +82,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final eco = context.eco;
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset password')),
+      appBar: const NeonAppBar(title: 'Reset password'),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -125,7 +126,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 if (_requestError != null) ...[
                   const SizedBox(height: 12),
-                  Text(_requestError!, style: TextStyle(color: scheme.error)),
+                  Text(_requestError!, style: TextStyle(color: eco.danger)),
                 ],
                 const SizedBox(height: 16),
                 if (!_sent)
@@ -185,7 +186,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               return 'Enter a new password';
                             }
                             if (v.length < 8) {
-                              return 'Use at least 8 characters';
+                              return 'Use a longer password';
                             }
                             return null;
                           },
@@ -194,7 +195,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _resetError!,
-                            style: TextStyle(color: scheme.error),
+                            style: TextStyle(color: eco.danger),
                           ),
                         ],
                         const SizedBox(height: 24),
@@ -228,7 +229,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                 if (_done != null) ...[
                   const SizedBox(height: 12),
-                  Text(_done!, style: TextStyle(color: scheme.primary)),
+                  Text(_done!, style: TextStyle(color: eco.primary)),
                 ],
               ],
             ),

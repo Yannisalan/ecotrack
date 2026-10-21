@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'eco_meta.dart';
+import 'neon.dart';
 
 class PillarSlice {
   const PillarSlice({
@@ -37,10 +38,11 @@ class EcoScoreGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     final hasScore = score != null;
     final value = ((score ?? 0).toDouble()).clamp(0, 100) / 100;
-    final gradeColor = ecoGradeColor(grade);
+    final gradeColor = ecoGradeColor(context, grade);
 
     return SizedBox(
       width: size,
@@ -53,10 +55,9 @@ class EcoScoreGauge extends StatelessWidget {
             painter: _GaugePainter(
               progress: value,
               slices: pillars,
-              trackColor: context.isDark
-                  ? EcoColors.darkBg
-                  : const Color(0xFFE8F3ED),
-              accent: EcoColors.brand,
+              trackColor: eco.track,
+              accent: eco.primary,
+              glow: eco.glow,
               stroke: stroke,
               dimmed: !hasScore,
             ),
@@ -65,20 +66,18 @@ class EcoScoreGauge extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (hasScore)
-                Text(
+                GlowText(
                   '${(score!.toDouble()).round()}',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                  ),
+                  size: size * 0.19,
+                  color: eco.textPrimary,
                 )
               else
-                Icon(Icons.eco_outlined, size: 30, color: context.muted),
+                Icon(Icons.eco_outlined, size: 30, color: eco.textSecondary),
               const SizedBox(height: 4),
               Text(
                 'Eco Score',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.muted,
+                  color: eco.textSecondary,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -116,6 +115,7 @@ class _GaugePainter extends CustomPainter {
     required this.slices,
     required this.trackColor,
     required this.accent,
+    required this.glow,
     required this.stroke,
     required this.dimmed,
   });
@@ -124,6 +124,7 @@ class _GaugePainter extends CustomPainter {
   final List<PillarSlice> slices;
   final Color trackColor;
   final Color accent;
+  final Color glow;
   final double stroke;
   final bool dimmed;
 
@@ -152,14 +153,20 @@ class _GaugePainter extends CustomPainter {
       return;
     }
 
-    // Segmented ring: each pillar occupies its share of the circle, with a
-    // small gap so the four pillars read as separate arcs.
+    // Soft glow under the segments, then the segments themselves.
     const gap = 0.055;
     var angle = _start;
     for (final slice in slices) {
       if (slice.share <= 0) continue;
       final sweep = math.pi * 2 * (slice.share / totalShare) - gap;
       if (sweep <= 0) continue;
+      final glowPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..color = slice.color.withValues(alpha: 0.18);
+      canvas.drawArc(rect, angle + gap / 2, sweep, false, glowPaint);
+
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = stroke

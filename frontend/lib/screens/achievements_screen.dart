@@ -94,6 +94,7 @@ class _StreakHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onHero = context.eco.onPrimary;
     final fraction = provider.total == 0
         ? 0.0
         : provider.unlocked / provider.total;
@@ -111,7 +112,7 @@ class _StreakHero extends StatelessWidget {
                     Text(
                       'CURRENT STREAK',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.white70,
+                        color: onHero.withValues(alpha: 0.7),
                         letterSpacing: 1,
                         fontWeight: FontWeight.w700,
                       ),
@@ -123,7 +124,7 @@ class _StreakHero extends StatelessWidget {
                         Text(
                           '${provider.currentStreak}',
                           style: theme.textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
+                            color: onHero,
                             fontWeight: FontWeight.w800,
                             height: 1,
                           ),
@@ -134,7 +135,7 @@ class _StreakHero extends StatelessWidget {
                           child: Text(
                             provider.currentStreak == 1 ? 'day' : 'days',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
+                              color: onHero.withValues(alpha: 0.7),
                             ),
                           ),
                         ),
@@ -146,15 +147,15 @@ class _StreakHero extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.local_fire_department,
-                    color: Colors.white,
+                    color: onHero,
                     size: 34,
                   ),
                   Text(
                     'Longest ${provider.longestStreak}d',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white70,
+                      color: onHero.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -168,7 +169,7 @@ class _StreakHero extends StatelessWidget {
                 child: Text(
                   '${provider.unlocked} of ${provider.total} achievements unlocked',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
+                    color: onHero,
                   ),
                 ),
               ),
@@ -180,8 +181,8 @@ class _StreakHero extends StatelessWidget {
             child: LinearProgressIndicator(
               value: fraction,
               minHeight: 7,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation(Colors.white),
+              backgroundColor: onHero.withValues(alpha: 0.24),
+              valueColor: AlwaysStoppedAnimation(onHero),
             ),
           ),
         ],
@@ -198,6 +199,7 @@ class _AchievementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final eco = context.eco;
     final earned = achievement['earned'] == true;
     final target = (achievement['target'] as num?)?.toDouble() ?? 1;
     final progress = (achievement['progress'] as num?)?.toDouble() ?? 0;
@@ -213,17 +215,15 @@ class _AchievementCard extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(
               color: earned
-                  ? EcoColors.brand.withValues(alpha: 0.14)
-                  : (context.isDark
-                        ? EcoColors.darkBg
-                        : const Color(0xFFEFF3F1)),
+                  ? eco.primary.withValues(alpha: 0.14)
+                  : eco.surfaceElevated,
               shape: BoxShape.circle,
             ),
             child: Icon(
               earned
                   ? _achievementIcon(achievement['icon'] as String?)
                   : Icons.lock_outline,
-              color: earned ? EcoColors.brand : context.muted,
+              color: earned ? eco.primary : context.muted,
               size: 22,
             ),
           ),
@@ -244,10 +244,10 @@ class _AchievementCard extends StatelessWidget {
                       ),
                     ),
                     if (earned)
-                      const Icon(
+                      Icon(
                         Icons.check_circle,
                         size: 17,
-                        color: EcoColors.brand,
+                        color: eco.primary,
                       ),
                   ],
                 ),
@@ -265,7 +265,7 @@ class _AchievementCard extends StatelessWidget {
                       Expanded(
                         child: EcoProgressBar(
                           value: fraction,
-                          color: EcoColors.brand,
+                          color: eco.primary,
                           height: 5,
                         ),
                       ),
@@ -301,7 +301,7 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off, size: 34, color: EcoColors.rose),
+          Icon(Icons.cloud_off, size: 34, color: context.eco.danger),
           const SizedBox(height: 8),
           Text(
             message,
@@ -325,7 +325,11 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(Icons.emoji_events_outlined, size: 34, color: EcoColors.brand),
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 34,
+            color: context.eco.primary,
+          ),
           const SizedBox(height: 8),
           Text(
             'No achievements yet',

@@ -8,9 +8,13 @@ import '../services/api_service.dart';
 class OfflineQueue {
   static const _key = 'offline_activity_queue';
 
+  /// A transport failure (offline/timeout) carries no HTTP status code, so it
+  /// is detected structurally rather than by matching the wording of the
+  /// message. This keeps the queue behaviour correct regardless of how the
+  /// friendly text is phrased.
   static bool isNetworkError(ApiException e) {
-    final m = e.message.toLowerCase();
-    return m.contains('cannot reach') || m.contains('took too long');
+    if (e.statusCode != null) return false;
+    return e.isNetworkError;
   }
 
   static Future<List<Map<String, dynamic>>> load() async {

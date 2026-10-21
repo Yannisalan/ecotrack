@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/activity_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 
 const _order = ['transport', 'electricity', 'water', 'waste'];
 const _icons = <String, IconData>{
@@ -95,7 +96,7 @@ class _LogActivityScreenState extends State<LogActivityScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = friendlyError(e);
         _loadingOptions = false;
       });
     }
@@ -165,7 +166,7 @@ class _LogActivityScreenState extends State<LogActivityScreen> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = e.message;
+        _error = friendlyError(e);
       });
     }
   }
@@ -267,7 +268,7 @@ class _LogActivityScreenState extends State<LogActivityScreen> {
                       (v ?? '').trim().replaceAll(',', '.'),
                     );
                     if (q == null) return 'Enter a number';
-                    if (q <= 0) return 'Must be greater than 0';
+                    if (q <= 0) return 'Must be a positive number';
                     if (q > 1000000) return 'That number is too large';
                     return null;
                   },

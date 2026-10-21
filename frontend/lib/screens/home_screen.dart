@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  List<PillarSlice> _pillars(Map<String, dynamic>? summary) {
+  List<PillarSlice> _pillars(BuildContext context, Map<String, dynamic>? summary) {
     final byCategory =
         (summary?['by_category'] as Map<String, dynamic>?) ?? const {};
     final total = (summary?['total_co2_kg'] as num?)?.toDouble() ?? 0;
@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final kg = (entry['co2_kg'] as num?)?.toDouble() ?? 0;
       return PillarSlice(
         label: meta.label,
-        color: meta.color,
+        color: meta.colorOf(context),
         kg: kg,
         share: total > 0 ? kg / total : 0,
       );
@@ -83,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final dashboard = context.watch<DashboardProvider>();
     final theme = Theme.of(context);
     final name = context.watch<AuthProvider>().userName;
@@ -100,10 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
       0,
       (sum, c) => sum + (((c as Map)['entries'] as num?)?.toInt() ?? 0),
     );
-    final pillars = _pillars(summary);
+    final pillars = _pillars(context, summary);
 
     if (dashboard.loading && summary == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingState();
     }
 
     return RefreshIndicator(
@@ -128,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'Every green action restores our planet.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: EcoColors.brand,
+                        color: eco.primary,
                       ),
                     ),
                   ],
@@ -143,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     horizontal: 14,
                     vertical: 10,
                   ),
-                  textStyle: const TextStyle(
+                  textStyle: theme.textTheme.labelMedium?.copyWith(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -162,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Impact sanctuary switcher
           Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: SectionLabel(
                   label: 'Impact Sanctuary',
                   icon: Icons.auto_awesome,
@@ -201,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   unit: 'kg CO₂',
                   note: 'Logged today',
                   icon: Icons.auto_awesome,
-                  accent: EcoColors.brand,
+                  accent: eco.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -214,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? 'Log to see your average'
                       : 'Per active day (${dashboard.period == 'week' ? '7' : '30'} days)',
                   icon: Icons.trending_up,
-                  accent: EcoColors.sky,
+                  accent: eco.secondary,
                 ),
               ),
             ],
@@ -244,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         TintedIcon(
                           icon: meta.icon,
-                          color: meta.color,
+                          color: meta.colorOf(context),
                           size: 38,
                         ),
                         const SizedBox(height: 6),
@@ -257,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           '${(byCategory[meta.key] as Map?)?['entries'] ?? 0} logged',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: context.muted,
+                            color: eco.textSecondary,
                             fontSize: 9.5,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -316,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Activity feed
           Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: SectionLabel(
                   label: 'Activity History',
                   icon: Icons.history,
@@ -325,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 settings.units == UnitSystem.metric ? '' : 'imperial',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.muted,
+                  color: eco.textSecondary,
                 ),
               ),
             ],
@@ -352,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_history.loading && _history.items.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(28),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: LoadingState(),
                 );
               }
               if (_history.error != null && _history.items.isEmpty) {
@@ -381,7 +382,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Row(
                         children: [
-                          TintedIcon(icon: meta.icon, color: meta.color),
+                          TintedIcon(
+                            icon: meta.icon,
+                            color: meta.colorOf(context),
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -397,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Text(
                                   '${meta.label} · ${ecoFormatDate(activity['date'] as String?)}',
                                   style: theme.textTheme.labelSmall?.copyWith(
-                                    color: context.muted,
+                                    color: eco.textSecondary,
                                   ),
                                 ),
                               ],
@@ -407,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             '+${ecoFormatKg(activity['co2_kg'] as num?)} kg',
                             style: theme.textTheme.labelMedium?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: EcoColors.brand,
+                              color: eco.primary,
                             ),
                           ),
                         ],
@@ -457,6 +461,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     return EcoCard(
       child: Column(
@@ -482,19 +487,12 @@ class _StatCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                value,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: accent,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
+              GlowText(value, size: 22, color: accent),
               const SizedBox(width: 4),
               Text(
                 unit,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.muted,
+                  color: eco.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -504,7 +502,7 @@ class _StatCard extends StatelessWidget {
           Text(
             note,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: context.muted,
+              color: eco.textSecondary,
               fontSize: 10.5,
             ),
           ),
@@ -521,6 +519,7 @@ class _SdgStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     final byCategory =
         (summary?['by_category'] as Map<String, dynamic>?) ?? const {};
@@ -529,18 +528,16 @@ class _SdgStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: EcoColors.brand.withValues(alpha: context.isDark ? 0.08 : 0.06),
-        borderRadius: BorderRadius.circular(EcoTheme.cardRadius),
-        border: Border.all(
-          color: EcoColors.brand.withValues(alpha: 0.18),
-        ),
+        color: eco.primary.withValues(alpha: context.isDark ? 0.08 : 0.06),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: eco.primary.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.public, size: 16, color: EcoColors.brand),
+              Icon(Icons.public, size: 16, color: eco.primary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -554,7 +551,7 @@ class _SdgStrip extends StatelessWidget {
               Text(
                 'by footprint share',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.muted,
+                  color: eco.textSecondary,
                   fontSize: 10,
                 ),
               ),
@@ -588,7 +585,7 @@ class _SdgStrip extends StatelessWidget {
                 ? 'Your logged CO₂ is split across the goals above — the bigger the bar, the more room to improve.'
                 : 'Log activities to see how your footprint maps to the UN Sustainable Development Goals.',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: context.muted,
+              color: eco.textSecondary,
               fontSize: 10.5,
             ),
           ),
@@ -607,6 +604,7 @@ class _SdgCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     final kg = (entry?['co2_kg'] as num?)?.toDouble() ?? 0;
     return Container(
@@ -614,7 +612,7 @@ class _SdgCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.hairline),
+        border: Border.all(color: eco.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,7 +631,7 @@ class _SdgCard extends StatelessWidget {
               Text(
                 '${(share * 100).round()}%',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: EcoColors.brand,
+                  color: eco.primary,
                   fontWeight: FontWeight.w700,
                   fontSize: 10,
                   fontFeatures: const [FontFeature.tabularFigures()],
@@ -645,13 +643,13 @@ class _SdgCard extends StatelessWidget {
           Text(
             kg > 0 ? '${ecoFormatKg(kg)} kg' : meta.sdgTitle,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: context.muted,
+              color: eco.textSecondary,
               fontSize: 9.5,
             ),
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
-          EcoProgressBar(value: share, color: meta.color, height: 4),
+          EcoProgressBar(value: share, color: meta.colorOf(context), height: 4),
         ],
       ),
     );
@@ -665,6 +663,7 @@ class _ChallengesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     return Consumer<ChallengesProvider>(
       builder: (context, challenges, _) {
@@ -675,7 +674,7 @@ class _ChallengesCard extends StatelessWidget {
           onTap: onTap,
           child: Row(
             children: [
-              const TintedIcon(icon: Icons.flag, color: EcoColors.water),
+              TintedIcon(icon: Icons.flag, color: eco.categoryWater),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -691,20 +690,20 @@ class _ChallengesCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 18, color: context.muted),
+                        Icon(Icons.chevron_right, size: 18, color: eco.textSecondary),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '$done of $total complete · ${challenges.points} pts',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: context.muted,
+                        color: eco.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     EcoProgressBar(
                       value: fraction,
-                      color: EcoColors.water,
+                      color: eco.categoryWater,
                       height: 5,
                     ),
                   ],
@@ -725,6 +724,7 @@ class _AchievementsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     return Consumer<AchievementsProvider>(
       builder: (context, achievements, _) {
@@ -735,10 +735,7 @@ class _AchievementsCard extends StatelessWidget {
           onTap: onTap,
           child: Row(
             children: [
-              const TintedIcon(
-                icon: Icons.emoji_events,
-                color: EcoColors.amber,
-              ),
+              TintedIcon(icon: Icons.emoji_events, color: eco.warning),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -754,18 +751,18 @@ class _AchievementsCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 18, color: context.muted),
+                        Icon(Icons.chevron_right, size: 18, color: eco.textSecondary),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '$unlocked of $total unlocked · ${achievements.currentStreak}d streak',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: context.muted,
+                        color: eco.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    EcoProgressBar(value: fraction, color: EcoColors.amber, height: 5),
+                    EcoProgressBar(value: fraction, color: eco.warning, height: 5),
                   ],
                 ),
               ),
@@ -785,6 +782,7 @@ class _EmptyFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     return EcoCard(
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
@@ -793,7 +791,7 @@ class _EmptyFeed extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(color: context.muted),
+            style: theme.textTheme.bodySmall?.copyWith(color: eco.textSecondary),
           ),
           const SizedBox(height: 6),
           TextButton(onPressed: onLog, child: const Text('Log an activity now')),
@@ -806,15 +804,16 @@ class _EmptyFeed extends StatelessWidget {
 class _NotificationsBanner extends StatelessWidget {
   const _NotificationsBanner();
 
-  Color _accent(String? severity) {
+  Color _accent(BuildContext context, String? severity) {
+    final eco = context.eco;
     switch (severity) {
       case 'warning':
-        return EcoColors.energy;
+        return eco.warning;
       case 'success':
-        return EcoColors.brand;
+        return eco.primary;
       case 'info':
       default:
-        return EcoColors.sky;
+        return eco.secondary;
     }
   }
 
@@ -833,6 +832,7 @@ class _NotificationsBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final provider = context.watch<NotificationsProvider>();
     final items = provider.items.take(3).toList();
     if (items.isEmpty) return const SizedBox.shrink();
@@ -854,7 +854,7 @@ class _NotificationsBanner extends StatelessWidget {
                 children: [
                   TintedIcon(
                     icon: _icon(n['type'] as String?),
-                    color: _accent(n['severity'] as String?),
+                    color: _accent(context, n['severity'] as String?),
                     size: 38,
                   ),
                   const SizedBox(width: 12),
@@ -872,7 +872,7 @@ class _NotificationsBanner extends StatelessWidget {
                         Text(
                           (n['body'] as String?) ?? '',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: context.muted,
+                            color: eco.textSecondary,
                           ),
                         ),
                       ],
@@ -904,7 +904,7 @@ class _NotificationsBanner extends StatelessWidget {
             child: Text(
               'View all (${provider.items.length})',
               style: theme.textTheme.labelMedium?.copyWith(
-                color: EcoColors.brand,
+                color: eco.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -921,6 +921,7 @@ class _OfflineBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
     final theme = Theme.of(context);
     final offline = context.watch<OfflineProvider>();
     if (offline.pending == 0) return const SizedBox.shrink();
@@ -932,9 +933,9 @@ class _OfflineBanner extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const TintedIcon(
+            TintedIcon(
               icon: Icons.cloud_off_outlined,
-              color: EcoColors.energy,
+              color: eco.warning,
               size: 36,
             ),
             const SizedBox(width: 12),

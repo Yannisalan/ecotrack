@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/stats_api.dart';
 
 class DashboardProvider extends ChangeNotifier {
@@ -38,7 +39,7 @@ class DashboardProvider extends ChangeNotifier {
       comparison = results[3] as Map<String, dynamic>;
     } on ApiException catch (e) {
       if (id != _requestId) return;
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();

@@ -23,6 +23,38 @@ def test_register_duplicate_email_is_409(client):
     assert register(client, email="A@B.com").status_code == 409
 
 
+def test_register_requires_terms_acceptance(client):
+    """Missing or falsy consent must never create an account."""
+    for accepted in (None, False):
+        payload = {"name": "No Consent", "email": "no-consent@b.com",
+                   "password": "secret123"}
+        if accepted is not None:
+            payload["terms_accepted"] = accepted
+        r = client.post("/api/auth/register", json=payload)
+        assert r.status_code == 400
+        assert "Terms" in r.get_json()["error"]
+    # And the rejected attempts left nothing behind.
+    r = client.post("/api/auth/login",
+                    json={"email": "no-consent@b.com", "password": "secret123"})
+    assert r.status_code == 401
+
+
+def test_register_persists_terms_consent(client):
+    """A successful registration records the flag, UTC timestamp and version."""
+    from app.models import User
+
+    r = register(client, email="consent@b.com")
+    assert r.status_code == 201
+    assert r.get_json()["user"]["terms_accepted"] is True
+    assert r.get_json()["user"]["policy_version"] == "2026-10-21"
+
+    with client.application.app_context():
+        user = User.query.filter_by(email="consent@b.com").first()
+        assert user.terms_accepted is True
+        assert user.terms_accepted_at is not None
+        assert user.policy_version == "2026-10-21"
+
+
 @pytest.mark.parametrize("payload", [
     {"email": "a@b.com", "password": "secret123"},                  # no name
     {"name": "A", "email": "not-an-email", "password": "secret123"},
@@ -221,12 +253,19 @@ def test_stats_are_per_user(client, auth, other_auth):
 
 def test_unknown_route_returns_json_404(client):
     r = client.get("/api/does-not-exist")
-    assert r.status_code == 404 and r.get_json() == {"error": "Not found"}
+    assert r.status_code == 404
+    body = r.get_json()
+    assert set(body) == {"error"}
+    # Friendly, jargon-free copy — never a raw/technical string.
+    assert "couldn't find" in body["error"].lower()
 
 
 def test_wrong_method_returns_json_405(client):
     r = client.delete("/api/health")
-    assert r.status_code == 405 and r.get_json() == {"error": "Method not allowed"}
+    assert r.status_code == 405
+    body = r.get_json()
+    assert set(body) == {"error"}
+    assert "isn't supported" in body["error"].lower()
 
 
 def test_unhandled_error_returns_json_500():
@@ -240,7 +279,12 @@ def test_unhandled_error_returns_json_500():
         raise RuntimeError("boom")
 
     r = app.test_client().get("/api/boom")
-    assert r.status_code == 500 and r.get_json() == {"error": "Internal server error"}
+    assert r.status_code == 500
+    body = r.get_json()
+    assert set(body) == {"error"}
+    # The exception detail must never reach the client.
+    assert "boom" not in body["error"].lower()
+    assert "traceback" not in body["error"].lower()
 
 
 def test_cors_origins_default_and_override(monkeypatch):
@@ -826,7 +870,8 @@ def test_register_returns_refresh_token(client):
 
 def test_web_client_gets_cookie_not_body_refresh(client):
     client.post("/api/auth/register",
-                json={"name": "Web", "email": "web@b.com", "password": "secret123"})
+                json={"name": "Web", "email": "web@b.com", "password": "secret123",
+                      "terms_accepted": True})
     r = client.post("/api/auth/login",
                     json={"email": "web@b.com", "password": "secret123"}, headers=WEB)
     assert r.status_code == 200

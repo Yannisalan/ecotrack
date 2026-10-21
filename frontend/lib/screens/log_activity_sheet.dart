@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/activity_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/offline.dart';
 import '../theme/app_theme.dart';
 import '../widgets/eco_meta.dart';
@@ -71,7 +72,7 @@ class _LogActivitySheetState extends State<LogActivitySheet> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = friendlyError(e);
         _loading = false;
       });
     }
@@ -128,7 +129,7 @@ class _LogActivitySheetState extends State<LogActivitySheet> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = friendlyError(e);
         _saving = false;
       });
     }
@@ -215,7 +216,7 @@ class _LogActivitySheetState extends State<LogActivitySheet> {
                                   (c) => EcoChip(
                                     label: c.label,
                                     icon: c.icon,
-                                    color: c.color,
+                                    color: c.colorOf(context),
                                     selected: _category == c.key,
                                     onTap: () => setState(() {
                                       _category = c.key;
@@ -310,10 +311,10 @@ class _LogActivitySheetState extends State<LogActivitySheet> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.event_outlined,
                                     size: 18,
-                                    color: EcoColors.brand,
+                                    color: context.eco.primary,
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
@@ -344,7 +345,7 @@ class _LogActivitySheetState extends State<LogActivitySheet> {
                             Text(
                               _error!,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: EcoColors.rose,
+                                color: context.eco.danger,
                               ),
                             ),
                           ],
@@ -356,12 +357,12 @@ class _LogActivitySheetState extends State<LogActivitySheet> {
                                   ? null
                                   : _save,
                               icon: _saving
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: context.eco.onPrimary,
                                       ),
                                     )
                                   : const Icon(Icons.check, size: 18),

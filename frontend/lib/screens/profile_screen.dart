@@ -7,11 +7,14 @@ import '../providers/dashboard_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/activity_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/reports_api.dart';
 import '../services/stats_api.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_header.dart';
 import '../widgets/eco_meta.dart';
 import '../widgets/eco_widgets.dart';
+import 'legal_screen.dart';
 import 'tips_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -64,6 +67,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       switch (_diet) { 'plant' => 1200.0, 'low_meat' => 1900.0, _ => 2800.0 } +
       switch (_energy) { 'solar' => 600.0, 'heat_pump' => 1400.0, _ => 2400.0 };
 
+  String _themeModeLabel(ThemeMode mode) => switch (mode) {
+    ThemeMode.system => 'System — follow your device setting',
+    ThemeMode.light => 'Light — lab-clean mint',
+    ThemeMode.dark => 'Dark — bioluminescent lab',
+  };
+
   Future<void> _export({required bool asJson}) async {
     setState(() => _exporting = true);
     try {
@@ -83,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         '${activities.length} activities copied to clipboard as ${asJson ? 'JSON' : 'CSV'}.',
       );
     } on ApiException catch (e) {
-      if (mounted) ecoSnack(context, e.message, error: true);
+      if (mounted) ecoSnack(context, friendlyError(e), error: true);
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -111,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ecoSnack(context, 'Server CSV report ($period) copied to clipboard.');
       }
     } on ApiException catch (e) {
-      if (mounted) ecoSnack(context, e.message, error: true);
+      if (mounted) ecoSnack(context, friendlyError(e), error: true);
     } finally {
       if (mounted) setState(() => _reporting = false);
     }
@@ -142,7 +151,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: EcoColors.rose),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.eco.danger,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete everything'),
           ),
@@ -188,11 +199,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: EcoColors.brand.withValues(alpha: 0.15),
+                backgroundColor: context.eco.primary.withValues(alpha: 0.15),
                 child: Text(
                   name.isNotEmpty ? name[0].toUpperCase() : 'U',
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    color: EcoColors.brand,
+                    color: context.eco.primary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -227,6 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: ecoGradeColor(
+                                context,
                                 grade,
                               ).withValues(alpha: 0.14),
                               borderRadius: BorderRadius.circular(999),
@@ -234,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Text(
                               grade,
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: ecoGradeColor(grade),
+                                color: ecoGradeColor(context, grade),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -243,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icon(
                           Icons.local_fire_department,
                           size: 15,
-                          color: EcoColors.amber,
+                          color: context.eco.warning,
                         ),
                         Text(
                           ' $_streak day streak · $_activityCount logged',
@@ -269,10 +281,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calculate_outlined,
                     size: 18,
-                    color: EcoColors.brand,
+                    color: context.eco.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -345,7 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: EcoColors.brand.withValues(alpha: 0.08),
+                  color: context.eco.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -357,7 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(
                             'ESTIMATED BASELINE',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: EcoColors.brandDark,
+                              color: context.eco.primary,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.6,
                             ),
@@ -365,7 +377,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(
                             '${(_annualBaselineKg / 1000).toStringAsFixed(2)} t CO₂ / year',
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: EcoColors.brandDark,
+                              color: context.eco.primary,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -434,39 +446,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Color theme',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          'Mint light or deep emerald',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: context.muted,
-                            fontSize: 10.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: PillSegmented<ThemeMode>(
-                  options: const [ThemeMode.light, ThemeMode.dark],
-                  value: context.isDark ? ThemeMode.dark : ThemeMode.light,
-                  onChanged: (mode) => settings.setThemeMode(mode),
-                  labelOf: (m) => m == ThemeMode.light ? 'Light' : 'Dark',
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.palette_outlined,
+                  color: context.eco.primary,
                 ),
+                title: Text(
+                  'Color theme',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(
+                  _themeModeLabel(settings.themeMode),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: context.muted,
+                    fontSize: 10.5,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showThemeModeSheet(context, settings),
               ),
             ],
           ),
@@ -572,9 +572,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const TintedIcon(
+                leading: TintedIcon(
                   icon: Icons.lightbulb_outlined,
-                  color: EcoColors.water,
+                  color: context.eco.categoryWater,
                 ),
                 title: const Text('Tips'),
                 subtitle: const Text('Practical ways to reduce your footprint'),
@@ -620,22 +620,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: EcoColors.rose,
-                    side: const BorderSide(color: EcoColors.rose),
+                    foregroundColor: context.eco.danger,
+                    side: BorderSide(color: context.eco.danger),
                   ),
                   onPressed: _deleting ? null : _confirmDelete,
                   icon: _deleting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 15,
                           height: 15,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: EcoColors.rose,
+                            color: context.eco.danger,
                           ),
                         )
                       : const Icon(Icons.delete_forever_outlined, size: 17),
                   label: const Text('Delete account'),
                 ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        // Legal
+        EcoCard(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionLabel(
+                label: 'Legal',
+                icon: Icons.gavel_outlined,
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.description_outlined,
+                  color: context.eco.primary,
+                ),
+                title: const Text('Terms and Conditions'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => openTerms(context),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.privacy_tip_outlined,
+                  color: context.eco.primary,
+                ),
+                title: const Text('Privacy Policy'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => openPrivacy(context),
               ),
             ],
           ),
@@ -661,17 +696,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: selected == options[i].$1
-                      ? EcoColors.brand
-                      : (context.isDark
-                            ? EcoColors.darkBg
-                            : const Color(0xFFE8F3ED)),
+                      ? context.eco.primary
+                      : context.eco.surfaceElevated,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   options[i].$2,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: selected == options[i].$1
-                        ? Colors.white
+                        ? Theme.of(context).colorScheme.onPrimary
                         : null,
                     fontWeight: FontWeight.w600,
                     fontSize: 10.5,
@@ -774,7 +807,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Enter a new password';
-                if (v.length < 8) return 'Use at least 8 characters';
+                if (v.length < 8) return 'Use a longer password';
                 return null;
               },
             ),

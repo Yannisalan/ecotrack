@@ -135,25 +135,30 @@ class _MonthGrid extends StatelessWidget {
   }
 }
 
+List<Color> _calendarLevelColors(BuildContext context) {
+  final eco = context.eco;
+  return [
+    eco.surfaceElevated,
+    const Color(0xFFA7F3D0),
+    const Color(0xFF34D399),
+    eco.warning,
+    eco.danger,
+  ];
+}
+
 class _DayCell extends StatelessWidget {
   const _DayCell({required this.day});
 
   final Map<String, dynamic> day;
 
-  static const _levelColors = [
-    Color(0xFFEFF3F1),
-    Color(0xFFA7F3D0),
-    Color(0xFF34D399),
-    Color(0xFFF59E0B),
-    Color(0xFFF43F5E),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final eco = context.eco;
+    final levelColors = _calendarLevelColors(context);
     final date = DateTime.parse(day['date'] as String);
     final level = (day['level'] as num?)?.toInt() ?? 0;
     final today = _isToday(date);
-    final color = _levelColors[level.clamp(0, 4)];
+    final color = levelColors[level.clamp(0, 4)];
 
     return Padding(
       padding: const EdgeInsets.all(2),
@@ -165,7 +170,7 @@ class _DayCell extends StatelessWidget {
             color: color,
             borderRadius: BorderRadius.circular(10),
             border: today
-                ? Border.all(color: EcoColors.brandDark, width: 2)
+                ? Border.all(color: eco.borderStrong, width: 2)
                 : null,
           ),
           alignment: Alignment.center,
@@ -174,7 +179,7 @@ class _DayCell extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: today ? FontWeight.w800 : FontWeight.w600,
-              color: level >= 3 ? Colors.white : const Color(0xFF0E2018),
+              color: level >= 3 ? eco.onPrimary : const Color(0xFF0E2018),
             ),
           ),
         ),
@@ -234,11 +239,12 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final levelColors = _calendarLevelColors(context);
     return Wrap(
       spacing: 14,
       runSpacing: 8,
       children: [
-        for (var i = 0; i < _DayCell._levelColors.length; i++)
+        for (var i = 0; i < levelColors.length; i++)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -246,7 +252,7 @@ class _Legend extends StatelessWidget {
                 width: 14,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: _DayCell._levelColors[i],
+                  color: levelColors[i],
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -276,7 +282,7 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off, size: 34, color: EcoColors.rose),
+          Icon(Icons.cloud_off, size: 34, color: context.eco.danger),
           const SizedBox(height: 8),
           Text(
             message,

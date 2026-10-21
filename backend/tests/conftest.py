@@ -30,9 +30,16 @@ def client():
         yield c
 
 
-def register(client, email="a@b.com", name="Alex", password="secret123"):
+def register(client, email="a@b.com", name="Alex", password="secret123",
+             terms_accepted=True):
     return client.post(
-        "/api/auth/register", json={"name": name, "email": email, "password": password}
+        "/api/auth/register",
+        json={
+            "name": name,
+            "email": email,
+            "password": password,
+            "terms_accepted": terms_accepted,
+        },
     )
 
 

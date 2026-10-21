@@ -18,11 +18,11 @@ COMMON_PASSWORDS = {
 def validate_password(password):
     """Return an error string for a weak password, or None if acceptable."""
     if not isinstance(password, str) or len(password) < MIN_PASSWORD_LENGTH:
-        return f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
+        return "Password is too short; please use a longer password"
     if password.lower() in COMMON_PASSWORDS:
         return "Password is too common; choose something less guessable"
     if len(set(password)) < 4:
-        return "Password must use at least 4 distinct characters"
+        return "Password must use more distinct characters"
     return None
 
 

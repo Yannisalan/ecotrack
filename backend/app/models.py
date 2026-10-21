@@ -18,6 +18,11 @@ class User(db.Model):
     # Bumped on password reset/change; JWTs carrying an older value are
     # rejected by the blocklist loader, which logs every session out.
     token_version = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    # Consent captured at registration. The version pins the accepted document
+    # ("2026-10-21"); the timestamp is UTC.
+    terms_accepted = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    terms_accepted_at = db.Column(db.DateTime)
+    policy_version = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=_utcnow)
 
     activities = db.relationship("Activity", backref="user", cascade="all, delete-orphan")
@@ -34,6 +39,8 @@ class User(db.Model):
             "id": self.id,
             "name": self.name,
             "email": self.email,
+            "terms_accepted": bool(self.terms_accepted),
+            "policy_version": self.policy_version,
             "created_at": self.created_at.isoformat(),
         }
 

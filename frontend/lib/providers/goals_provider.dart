@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/goals_api.dart';
 
 class GoalsProvider extends ChangeNotifier {
@@ -22,7 +23,7 @@ class GoalsProvider extends ChangeNotifier {
     try {
       goals = await api.listGoals();
     } on ApiException catch (e) {
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();
@@ -47,7 +48,7 @@ class GoalsProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
   }
 
@@ -58,7 +59,7 @@ class GoalsProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
   }
 
@@ -80,7 +81,7 @@ class GoalsProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     } on ApiException catch (e) {
-      return e.message;
+      return friendlyError(e);
     }
   }
 }

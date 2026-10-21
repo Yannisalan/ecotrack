@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-/// One entry per backend activity category.
+/// One entry per backend activity category. The colour is resolved per theme
+/// through [EcoColors] so both modes use the correct variant.
 class EcoCategoryMeta {
   const EcoCategoryMeta({
     required this.key,
     required this.label,
     required this.icon,
-    required this.color,
     required this.sdg,
     required this.sdgTitle,
   });
@@ -15,9 +15,20 @@ class EcoCategoryMeta {
   final String key; // backend category name
   final String label; // display name (reference pillar name)
   final IconData icon;
-  final Color color;
   final int sdg; // UN Sustainable Development Goal number
   final String sdgTitle;
+
+  /// Theme-aware category colour.
+  Color colorOf(BuildContext context) {
+    final eco = context.eco;
+    return switch (key) {
+      'transport' => eco.categoryTransport,
+      'electricity' => eco.categoryEnergy,
+      'water' => eco.categoryWater,
+      'waste' => eco.categoryWaste,
+      _ => eco.primary,
+    };
+  }
 }
 
 const ecoCategories = <EcoCategoryMeta>[
@@ -25,7 +36,6 @@ const ecoCategories = <EcoCategoryMeta>[
     key: 'transport',
     label: 'Mobility',
     icon: Icons.directions_car_outlined,
-    color: EcoColors.mobility,
     sdg: 13,
     sdgTitle: 'Climate action',
   ),
@@ -33,7 +43,6 @@ const ecoCategories = <EcoCategoryMeta>[
     key: 'electricity',
     label: 'Energy',
     icon: Icons.bolt_outlined,
-    color: EcoColors.energy,
     sdg: 7,
     sdgTitle: 'Clean energy',
   ),
@@ -41,7 +50,6 @@ const ecoCategories = <EcoCategoryMeta>[
     key: 'water',
     label: 'Water',
     icon: Icons.water_drop_outlined,
-    color: EcoColors.water,
     sdg: 6,
     sdgTitle: 'Clean water',
   ),
@@ -49,22 +57,22 @@ const ecoCategories = <EcoCategoryMeta>[
     key: 'waste',
     label: 'Waste',
     icon: Icons.recycling_outlined,
-    color: EcoColors.waste,
     sdg: 12,
     sdgTitle: 'Responsible consumption',
   ),
 ];
 
+const _otherCategory = EcoCategoryMeta(
+  key: 'other',
+  label: 'Other',
+  icon: Icons.eco_outlined,
+  sdg: 13,
+  sdgTitle: 'Climate action',
+);
+
 EcoCategoryMeta ecoCategory(String? key) => ecoCategories.firstWhere(
   (c) => c.key == key,
-  orElse: () => const EcoCategoryMeta(
-    key: 'other',
-    label: 'Other',
-    icon: Icons.eco_outlined,
-    color: EcoColors.brand,
-    sdg: 13,
-    sdgTitle: 'Climate action',
-  ),
+  orElse: () => _otherCategory,
 );
 
 const _typeLabels = <String, String>{
@@ -99,13 +107,16 @@ String ecoTypeLabel(String? type) {
   return pretty.isEmpty ? type : pretty;
 }
 
-Color ecoGradeColor(String? grade) => switch (grade) {
-  'Excellent' => EcoColors.brand,
-  'Good' => EcoColors.sky,
-  'Fair' => EcoColors.amber,
-  'Needs work' => EcoColors.rose,
-  _ => EcoColors.brand,
-};
+Color ecoGradeColor(BuildContext context, String? grade) {
+  final eco = context.eco;
+  return switch (grade) {
+    'Excellent' => eco.gradeExcellent,
+    'Good' => eco.gradeGood,
+    'Fair' => eco.gradeFair,
+    'Needs work' => eco.gradePoor,
+    _ => eco.primary,
+  };
+}
 
 String ecoFormatKg(num? kg) {
   final v = (kg ?? 0).toDouble();

@@ -31,9 +31,9 @@ def _parse_quantity(value):
     except (TypeError, ValueError):
         return None, "quantity must be a number"
     if not math.isfinite(q) or q <= 0:
-        return None, "quantity must be greater than 0"
+        return None, "quantity must be a positive number"
     if q > MAX_QUANTITY:
-        return None, f"quantity must not exceed {MAX_QUANTITY}"
+        return None, "quantity is too large"
     return q, None
 
 
@@ -113,7 +113,7 @@ def create_activity():
     type_ = (data.get("type") or "").strip().lower()
 
     if not is_valid(category, type_):
-        return jsonify(error="Invalid category/type. See GET /api/activities/options"), 400
+        return jsonify(error="Please choose a valid activity type and try again."), 400
     quantity, err = _parse_quantity(data.get("quantity"))
     if err:
         return jsonify(error=err), 400
@@ -186,14 +186,18 @@ def list_activities():
             try:
                 d = date.fromisoformat(raw)
             except ValueError:
-                return jsonify(error=f"'{param}' must be YYYY-MM-DD"), 400
+                return jsonify(
+                    error="Please enter a valid date and try again."
+                ), 400
             q = q.filter(Activity.date >= d if op == "ge" else Activity.date <= d)
 
     try:
         limit = min(max(int(request.args.get("limit", 50)), 1), 200)
         offset = max(int(request.args.get("offset", 0)), 0)
     except ValueError:
-        return jsonify(error="limit and offset must be integers"), 400
+        return jsonify(
+            error="Sorry, we couldn't process that request. Please try again."
+        ), 400
 
     total = q.count()
     rows = q.order_by(Activity.date.desc(), Activity.id.desc()).limit(limit).offset(offset).all()
@@ -222,7 +226,7 @@ def update_activity(activity_id):
     category = (data.get("category") or activity.category).strip().lower()
     type_ = (data.get("type") or activity.type).strip().lower()
     if not is_valid(category, type_):
-        return jsonify(error="Invalid category/type. See GET /api/activities/options"), 400
+        return jsonify(error="Please choose a valid activity type and try again."), 400
 
     quantity = activity.quantity
     if "quantity" in data:

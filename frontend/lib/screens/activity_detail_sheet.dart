@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/activity_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/eco_meta.dart';
@@ -64,7 +65,9 @@ class _ActivityDetailSheetState extends State<_ActivityDetailSheet> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: EcoColors.rose),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.eco.danger,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -84,7 +87,7 @@ class _ActivityDetailSheetState extends State<_ActivityDetailSheet> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ecoSnack(context, e.message, error: true);
+      ecoSnack(context, friendlyError(e), error: true);
     }
   }
 
@@ -121,7 +124,11 @@ class _ActivityDetailSheetState extends State<_ActivityDetailSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                TintedIcon(icon: meta.icon, color: meta.color, size: 46),
+                TintedIcon(
+                  icon: meta.icon,
+                  color: meta.colorOf(context),
+                  size: 46,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -176,7 +183,7 @@ class _ActivityDetailSheetState extends State<_ActivityDetailSheet> {
                 Expanded(
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      backgroundColor: EcoColors.rose,
+                      backgroundColor: context.eco.danger,
                     ),
                     onPressed: _busy ? null : _delete,
                     icon: _busy

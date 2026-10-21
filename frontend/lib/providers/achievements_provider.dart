@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../services/achievements_api.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 
 class AchievementsProvider extends ChangeNotifier {
   final ApiService api;
@@ -30,7 +31,7 @@ class AchievementsProvider extends ChangeNotifier {
       currentStreak = (streak?['current'] as num?)?.toInt() ?? 0;
       longestStreak = (streak?['longest'] as num?)?.toInt() ?? 0;
     } on ApiException catch (e) {
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();

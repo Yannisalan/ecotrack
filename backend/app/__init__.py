@@ -55,32 +55,13 @@ def create_app(config_class=Config):
     def health():
         return jsonify(status="ok")
 
-    # The API always answers in JSON, never HTML error pages
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify(error="Not found"), 404
-
-    @app.errorhandler(405)
-    def method_not_allowed(e):
-        return jsonify(error="Method not allowed"), 405
-
-    @app.errorhandler(413)
-    def too_large(e):
-        limit_mb = round(app.config["MAX_CONTENT_LENGTH"] / (1024 * 1024), 2)
-        return jsonify(error=f"Request body too large (limit {limit_mb} MB)"), 413
-
-    @app.errorhandler(429)
-    def too_many_requests(e):
-        resp = jsonify(error="Too many requests. Please slow down.")
-        retry_after = getattr(e, "retry_after", None)
-        if retry_after:
-            resp.headers["Retry-After"] = str(retry_after)
-        return resp, 429
-
-    @app.errorhandler(500)
-    def server_error(e):
-        db.session.rollback()
-        return jsonify(error="Internal server error"), 500
+    # Central, friendly JSON error handling (400/401/403/404/405/409/413/429/500
+    # + catch-all). See app/errors.py — the API never returns an HTML error page.
+    from .errors import (
+        register_error_handlers,
+        MSG_UNAUTHORIZED,
+    )
+    register_error_handlers(app)
 
     @app.after_request
     def security_headers(resp):
@@ -93,15 +74,15 @@ def create_app(config_class=Config):
 
     @jwt.unauthorized_loader
     def missing_token(reason):
-        return jsonify(error="Missing or invalid Authorization header"), 401
+        return jsonify(error=MSG_UNAUTHORIZED), 401
 
     @jwt.invalid_token_loader
     def invalid_token(reason):
-        return jsonify(error="Invalid token"), 401
+        return jsonify(error=MSG_UNAUTHORIZED), 401
 
     @jwt.expired_token_loader
     def expired_token(jwt_header, jwt_payload):
-        return jsonify(error="Token has expired"), 401
+        return jsonify(error=MSG_UNAUTHORIZED), 401
 
     @jwt.token_in_blocklist_loader
     def is_token_revoked(jwt_header, jwt_payload):
@@ -134,7 +115,7 @@ def create_app(config_class=Config):
 
     @jwt.revoked_token_loader
     def revoked_token(jwt_header, jwt_payload):
-        return jsonify(error="Token has been revoked"), 401
+        return jsonify(error=MSG_UNAUTHORIZED), 401
 
     with app.app_context():
         from . import models  # noqa: F401
@@ -146,6 +127,19 @@ def create_app(config_class=Config):
             db.session.execute(text(
                 "ALTER TABLE users "
                 "ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0"
+            ))
+            # Terms/Privacy consent captured at registration.
+            db.session.execute(text(
+                "ALTER TABLE users "
+                "ADD COLUMN IF NOT EXISTS terms_accepted BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
+            db.session.execute(text(
+                "ALTER TABLE users "
+                "ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMP"
+            ))
+            db.session.execute(text(
+                "ALTER TABLE users "
+                "ADD COLUMN IF NOT EXISTS policy_version VARCHAR(20)"
             ))
             db.session.commit()
         # Clear already-expired blocklist/reset rows on every boot (cheap).

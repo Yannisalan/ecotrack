@@ -1,6 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
+import '../widgets/neon.dart';
+import 'legal_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,6 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirm = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
+  bool _acceptedTerms = false;
   String? _error;
 
   @override
@@ -30,6 +35,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_acceptedTerms) {
+      setState(
+        () => _error =
+            'You must accept the Terms and Privacy Policy to create an account.',
+      );
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -38,6 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _name.text.trim(),
       _email.text.trim().toLowerCase(),
       _password.text,
+      termsAccepted: _acceptedTerms,
     );
     if (!mounted) return;
     if (error != null) {
@@ -53,9 +66,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
+      appBar: const NeonAppBar(title: 'Create account'),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -116,7 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     validator: (v) => (v == null || v.length < 8)
-                        ? 'Use at least 8 characters'
+                        ? 'Use a longer password'
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -134,11 +146,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: scheme.error)),
+                    Text(_error!, style: TextStyle(color: context.eco.danger)),
                   ],
+                  const SizedBox(height: 16),
+                  _ConsentCheckbox(
+                    value: _acceptedTerms,
+                    onChanged: (v) => setState(() => _acceptedTerms = v),
+                  ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: _loading ? null : _submit,
+                    onPressed: (_loading || !_acceptedTerms) ? null : _submit,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       child: _loading
@@ -156,6 +173,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Required consent row. The two policy names are tappable links that open
+/// their screens (pushed on top, so the form state is preserved).
+class _ConsentCheckbox extends StatelessWidget {
+  const _ConsentCheckbox({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final eco = context.eco;
+    final theme = Theme.of(context);
+    final linkStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: eco.primary,
+      fontWeight: FontWeight.w700,
+      decoration: TextDecoration.underline,
+      decorationColor: eco.primary,
+    );
+    final bodyStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: eco.textPrimary,
+      height: 1.4,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 26,
+          height: 26,
+          child: Checkbox(
+            value: value,
+            onChanged: (v) => onChanged(v ?? false),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text.rich(
+              TextSpan(
+                style: bodyStyle,
+                children: [
+                  const TextSpan(
+                    text: 'I agree to the ',
+                  ),
+                  TextSpan(
+                    text: 'Terms and Conditions',
+                    style: linkStyle,
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => openTerms(context),
+                  ),
+                  const TextSpan(text: ' and '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: linkStyle,
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => openPrivacy(context),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

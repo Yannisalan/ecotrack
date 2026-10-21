@@ -23,15 +23,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
-  Color _accent(String? severity) {
+  Color _accent(BuildContext context, String? severity) {
+    final eco = context.eco;
     switch (severity) {
       case 'warning':
-        return EcoColors.energy;
+        return eco.warning;
       case 'success':
-        return EcoColors.brand;
+        return eco.primary;
       case 'info':
       default:
-        return EcoColors.sky;
+        return eco.secondary;
     }
   }
 
@@ -128,7 +129,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _NotificationCard(
                     notification: n,
-                    accent: _accent(n['severity'] as String?),
+                    accent: _accent(context, n['severity'] as String?),
                     icon: _icon(n['type'] as String?),
                     onRead: () => provider.markRead(n['id'] as int),
                     onDismiss: () => provider.dismiss(n['id'] as int),
@@ -377,7 +378,7 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off, size: 34, color: EcoColors.rose),
+          Icon(Icons.cloud_off, size: 34, color: context.eco.danger),
           const SizedBox(height: 8),
           Text(
             message,
@@ -405,10 +406,10 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.notifications_none,
             size: 34,
-            color: EcoColors.brand,
+            color: context.eco.primary,
           ),
           const SizedBox(height: 8),
           Text(

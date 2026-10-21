@@ -16,6 +16,7 @@ import 'package:ecotrack_app/screens/challenges_screen.dart';
 import 'package:ecotrack_app/screens/notifications_screen.dart';
 import 'package:ecotrack_app/screens/recommendations_screen.dart';
 import 'package:ecotrack_app/services/api_service.dart';
+import 'package:ecotrack_app/theme/app_theme.dart';
 
 http.Response _json(Object body, [int status = 200]) => http.Response(
   jsonEncode(body),
@@ -29,7 +30,7 @@ Widget _wrap(Widget child, {List<ChangeNotifierProvider> providers = const []}) 
         Provider<ApiService>(create: (_) => ApiService()),
         ...providers,
       ],
-      child: MaterialApp(home: child),
+      child: MaterialApp(theme: AppTheme.light(), home: child),
     );
 
 void main() {

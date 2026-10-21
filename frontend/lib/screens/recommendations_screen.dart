@@ -46,7 +46,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off, size: 40, color: EcoColors.rose),
+              Icon(Icons.cloud_off, size: 40, color: context.eco.danger),
               const SizedBox(height: 10),
               Text(dashboard.error!, textAlign: TextAlign.center),
               const SizedBox(height: 14),
@@ -77,7 +77,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           Text(
             'Insights and actions based on what you log',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: EcoColors.brand,
+              color: context.eco.primary,
             ),
           ),
           const SizedBox(height: 16),
@@ -120,7 +120,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                     child: EcoChip(
                       label: meta.label,
                       icon: meta.icon,
-                      color: meta.color,
+                      color: meta.colorOf(context),
                       selected: _filter == key,
                       onTap: () => setState(() => _filter = key),
                     ),
@@ -174,7 +174,7 @@ class _InsightsSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.insights, size: 15, color: EcoColors.brand),
+              Icon(Icons.insights, size: 15, color: context.eco.primary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -238,6 +238,7 @@ class _InsightsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final eco = context.eco;
     final hasData = data['has_data'] == true;
     if (!hasData) {
       return Text(
@@ -263,8 +264,8 @@ class _InsightsBody extends StatelessWidget {
         .cast<Map<String, dynamic>>();
 
     final trendColor = switch (trend) {
-      'improving' => EcoColors.brand,
-      'worsening' => EcoColors.rose,
+      'improving' => eco.primary,
+      'worsening' => eco.danger,
       _ => context.muted,
     };
     final trendLabel = change == null
@@ -302,7 +303,7 @@ class _InsightsBody extends StatelessWidget {
         if (topMeta != null)
           Row(
             children: [
-              Icon(topMeta.icon, size: 15, color: topMeta.color),
+              Icon(topMeta.icon, size: 15, color: topMeta.colorOf(context)),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -332,7 +333,7 @@ class _InsightsBody extends StatelessWidget {
           ...highlights.take(2).map(
             (h) => _InsightRow(
               icon: Icons.check_circle_outline,
-              color: EcoColors.brand,
+              color: eco.primary,
               title: h['title'] as String? ?? '',
               body: h['body'] as String? ?? '',
             ),
@@ -343,7 +344,7 @@ class _InsightsBody extends StatelessWidget {
           ...watchouts.take(2).map(
             (w) => _InsightRow(
               icon: Icons.error_outline,
-              color: EcoColors.energy,
+              color: eco.warning,
               title: w['title'] as String? ?? '',
               body: w['body'] as String? ?? '',
             ),
@@ -446,6 +447,7 @@ class _HeroRecommendation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final eco = context.eco;
     final category = rec['category'] as String?;
     final saving =
         (rec['estimated_saving_co2_kg'] as num?)?.toDouble() ?? 0;
@@ -453,17 +455,15 @@ class _HeroRecommendation extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(EcoTheme.cardRadius),
-        border: Border.all(color: EcoColors.brand.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: eco.border),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: context.isDark
-              ? [
-                  EcoColors.darkSurface,
-                  EcoColors.brand.withValues(alpha: 0.12),
-                ]
-              : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
+          colors: [
+            eco.surface,
+            eco.primary.withValues(alpha: context.isDark ? 0.12 : 0.08),
+          ],
         ),
       ),
       child: Column(
@@ -471,14 +471,14 @@ class _HeroRecommendation extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, size: 16, color: EcoColors.brand),
+              Icon(Icons.auto_awesome, size: 16, color: eco.primary),
               const SizedBox(width: 6),
               Text(
                 'TOP HIGH-IMPACT RECOMMENDATION',
                 style: theme.textTheme.labelSmall?.copyWith(
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w700,
-                  color: EcoColors.brandDark,
+                  color: eco.primary,
                 ),
               ),
             ],
@@ -504,7 +504,7 @@ class _HeroRecommendation extends StatelessWidget {
                       ? '-${ecoFormatKg(saving)} kg CO₂ potential saving'
                       : 'Keep logging to unlock savings',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: EcoColors.brandDark,
+                    color: eco.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -555,7 +555,7 @@ class _RecommendationCard extends StatelessWidget {
         children: [
           TintedIcon(
             icon: isGeneral ? Icons.eco_outlined : meta.icon,
-            color: isGeneral ? EcoColors.brand : meta.color,
+            color: isGeneral ? context.eco.primary : meta.colorOf(context),
             size: 42,
           ),
           const SizedBox(width: 12),
@@ -592,7 +592,7 @@ class _RecommendationCard extends StatelessWidget {
                             ? '-${ecoFormatKg(saving)} kg CO₂'
                             : 'No estimate yet',
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: EcoColors.brand,
+                          color: context.eco.primary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

@@ -47,15 +47,16 @@ class TipsScreen extends StatelessWidget {
     'community': Icons.people_outlined,
   };
 
-  Color _catColor(String c) {
+  Color _catColor(BuildContext context, String c) {
+    final eco = context.eco;
     switch (c) {
-      case 'transport': return EcoColors.mobility;
-      case 'energy': return EcoColors.energy;
-      case 'water': return EcoColors.water;
-      case 'waste': return EcoColors.waste;
-      case 'food': return EcoColors.energy;
-      case 'community': return EcoColors.brand;
-      default: return EcoColors.lightMuted;
+      case 'transport': return eco.categoryTransport;
+      case 'energy': return eco.categoryEnergy;
+      case 'water': return eco.categoryWater;
+      case 'waste': return eco.categoryWaste;
+      case 'food': return eco.warning;
+      case 'community': return eco.primary;
+      default: return eco.textSecondary;
     }
   }
 
@@ -63,7 +64,7 @@ class TipsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Tips')),
+      appBar: const NeonAppBar(title: 'Tips'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
         children: [
@@ -77,7 +78,7 @@ class TipsScreen extends StatelessWidget {
                   children: [
                     TintedIcon(
                       icon: _cat[t.category] ?? Icons.lightbulb_outline,
-                      color: _catColor(t.category),
+                      color: _catColor(context, t.category),
                       size: 36,
                     ),
                     const SizedBox(width: 12),

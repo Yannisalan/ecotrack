@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/error_messages.dart';
 import '../services/insights_api.dart';
 
 class InsightsProvider extends ChangeNotifier {
@@ -25,7 +26,7 @@ class InsightsProvider extends ChangeNotifier {
       data = result;
     } on ApiException catch (e) {
       if (id != _requestId) return;
-      error = e.message;
+      error = friendlyError(e);
     }
     loading = false;
     notifyListeners();

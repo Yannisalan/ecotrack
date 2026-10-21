@@ -1,3 +1,4 @@
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
@@ -5,11 +6,24 @@ import 'providers/settings_provider.dart';
 import 'screens/app_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/api_service.dart';
+import 'services/error_messages.dart';
 import 'theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Any uncaught framework/async error is logged for developers and never
+  // shown to the user — the friendly ErrorWidget below is the only UI.
+  FlutterError.onError = (details) {
+    logTechnicalError('FlutterError', details.exception, details.stack);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logTechnicalError('PlatformDispatcher', error, stack);
+    return true; // handled
+  };
+  ErrorWidget.builder = (details) => const _FriendlyErrorScreen();
+
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(const EcoTrackApp());
 }
@@ -113,6 +127,46 @@ class _RestoreError extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown by [ErrorWidget.builder] when the widget tree throws. Deliberately
+/// standalone (no theme extension / provider access) so it can render anywhere.
+class _FriendlyErrorScreen extends StatelessWidget {
+  const _FriendlyErrorScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Container(
+        color: const Color(0xFF050A0E),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.eco_outlined, size: 48, color: Color(0xFF39FF88)),
+            const SizedBox(height: 16),
+            const Text(
+              'Sorry, something went wrong.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFE8FFF4),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF8FB5A6), fontSize: 14),
+            ),
+          ],
         ),
       ),
     );

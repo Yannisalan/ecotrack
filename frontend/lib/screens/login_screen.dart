@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
 import 'forgot_password_screen.dart';
+import 'legal_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final eco = context.eco;
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -60,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.eco, size: 64, color: scheme.primary),
+                  Icon(Icons.eco, size: 64, color: eco.primary),
                   const SizedBox(height: 8),
                   Text(
                     'EcoTrack',
@@ -118,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: scheme.error)),
+                    Text(_error!, style: TextStyle(color: eco.danger)),
                   ],
                   const SizedBox(height: 24),
                   FilledButton(
@@ -155,12 +157,46 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                     child: const Text("Don't have an account? Sign up"),
                   ),
+                  const SizedBox(height: 20),
+                  _LegalFooterLinks(eco: eco),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Shared footer with the two legal links (login + settings).
+class _LegalFooterLinks extends StatelessWidget {
+  const _LegalFooterLinks({required this.eco});
+
+  final EcoColors eco;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      color: eco.textSecondary,
+      fontSize: 12.5,
+      decoration: TextDecoration.underline,
+      decorationColor: eco.textSecondary,
+    );
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () => openTerms(context),
+          child: Text('Terms and Conditions', style: style),
+        ),
+        Text('·', style: style),
+        TextButton(
+          onPressed: () => openPrivacy(context),
+          child: Text('Privacy Policy', style: style),
+        ),
+      ],
     );
   }
 }

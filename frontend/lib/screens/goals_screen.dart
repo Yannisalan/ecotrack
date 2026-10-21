@@ -16,10 +16,10 @@ class GoalsScreen extends StatelessWidget {
     _ => ecoCategory(metric).icon,
   };
 
-  Color _metricColor(String? metric) => switch (metric) {
-    'co2' => EcoColors.brand,
-    'activities' => EcoColors.sky,
-    _ => ecoCategory(metric).color,
+  Color _metricColor(BuildContext context, String? metric) => switch (metric) {
+    'co2' => context.eco.primary,
+    'activities' => context.eco.secondary,
+    _ => ecoCategory(metric).colorOf(context),
   };
 
   String _metricLabel(String? metric) => switch (metric) {
@@ -55,7 +55,7 @@ class GoalsScreen extends StatelessWidget {
                     Text(
                       'Your own reduction targets',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: EcoColors.brand,
+                        color: context.eco.primary,
                       ),
                     ),
                   ],
@@ -96,7 +96,7 @@ class GoalsScreen extends StatelessWidget {
                   label: 'Completed Goals',
                   value: '${goals.completed.length}',
                   note: 'Milestones unlocked',
-                  accent: EcoColors.brand,
+                  accent: context.eco.primary,
                 ),
               ),
             ],
@@ -137,10 +137,10 @@ class GoalsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 16),
               child: Column(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.track_changes,
                     size: 34,
-                    color: EcoColors.brand,
+                    color: context.eco.primary,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -171,7 +171,7 @@ class GoalsScreen extends StatelessWidget {
                 child: _GoalCard(
                   goal: goal,
                   icon: _metricIcon(goal['metric'] as String?),
-                  color: _metricColor(goal['metric'] as String?),
+                  color: _metricColor(context, goal['metric'] as String?),
                   metricLabel: _metricLabel(goal['metric'] as String?),
                   settings: settings,
                   goals: goals,
@@ -194,9 +194,9 @@ class GoalsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle,
-                        color: EcoColors.brand,
+                        color: context.eco.primary,
                         size: 22,
                       ),
                       const SizedBox(width: 10),
@@ -401,7 +401,7 @@ class _GoalCard extends StatelessWidget {
                 icon: const Icon(Icons.check_circle_outline, size: 15),
                 label: const Text('Complete'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: EcoColors.brand,
+                  foregroundColor: context.eco.primary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 6,
@@ -434,7 +434,7 @@ class _StepButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
-          color: context.isDark ? EcoColors.darkBg : const Color(0xFFE8F3ED),
+          color: context.eco.surfaceElevated,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(

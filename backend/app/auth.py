@@ -20,6 +20,10 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 RESET_TTL_MINUTES = 30
 
+# Version string of the Terms and Conditions / Privacy Policy a new account
+# accepts. Update this when the legal documents change.
+POLICY_VERSION = "2026-10-21"
+
 # Refresh tokens are read from the HttpOnly cookie (web), the Authorization
 # header or the JSON body (mobile). Access tokens stay header-only.
 _REFRESH_LOCATIONS = ["cookies", "headers", "json"]
@@ -79,6 +83,7 @@ def register():
     name = (data.get("name") or "").strip()
     email = normalize_email(data.get("email"))
     password = data.get("password") or ""
+    terms_accepted = data.get("terms_accepted")
 
     if not name or not email or not password:
         return jsonify(error="name, email and password are required"), 400
@@ -87,10 +92,22 @@ def register():
     policy_error = validate_password(password)
     if policy_error:
         return jsonify(error=policy_error), 400
+    # Consent is mandatory: reject anything that is not explicitly true so a
+    # missing or falsy flag can never create an account.
+    if terms_accepted is not True:
+        return jsonify(
+            error="You must accept the Terms and Privacy Policy to create an account."
+        ), 400
     if User.query.filter_by(email=email).first():
         return jsonify(error="Email already registered"), 409
 
-    user = User(name=name, email=email)
+    user = User(
+        name=name,
+        email=email,
+        terms_accepted=True,
+        terms_accepted_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        policy_version=POLICY_VERSION,
+    )
     user.set_password(password)
     db.session.add(user)
     db.session.commit()

@@ -13,11 +13,12 @@ import 'package:ecotrack_app/screens/calendar_screen.dart';
 import 'package:ecotrack_app/screens/challenges_screen.dart';
 import 'package:ecotrack_app/services/api_service.dart';
 import 'package:ecotrack_app/services/offline.dart';
+import 'package:ecotrack_app/theme/app_theme.dart';
 
 Widget _wrap(Widget child, {List<ChangeNotifierProvider> providers = const []}) =>
     MultiProvider(
       providers: [Provider<ApiService>(create: (_) => ApiService()), ...providers],
-      child: MaterialApp(home: child),
+      child: MaterialApp(theme: AppTheme.light(), home: child),
     );
 
 void main() {
