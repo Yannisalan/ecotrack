@@ -5,12 +5,38 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
+# Minimum length for the JWT signing secret. HS256 is a symmetric signature:
+# a short secret is brute-forceable, so anything shorter is refused outright
+# rather than silently accepted.
+MIN_JWT_SECRET_LENGTH = 32
+
 # The project keeps its .env at the repo root (one level above backend/).
 # Load that first so `python run.py` works from any working directory, then
 # let later assignments in the environment win (load_dotenv never overrides).
 _PROJECT_ENV = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(_PROJECT_ENV)
 load_dotenv()  # backend/.env still wins if someone keeps one there
+
+
+def validate_jwt_secret(secret):
+    """Return the secret, or raise a clear RuntimeError if it is unusable.
+
+    Called at import time so the app refuses to start rather than issuing
+    tokens signed with a missing or guessable key.
+    """
+    if not secret or not secret.strip():
+        raise RuntimeError(
+            "JWT_SECRET_KEY is not set. Add it to the project-root .env file "
+            "(see backend/.env.example)."
+        )
+    if len(secret.strip()) < MIN_JWT_SECRET_LENGTH:
+        raise RuntimeError(
+            "JWT_SECRET_KEY is too short: it must be at least "
+            f"{MIN_JWT_SECRET_LENGTH} characters (got {len(secret.strip())}). "
+            "Generate a strong one with: "
+            'python -c "import secrets; print(secrets.token_hex(32))"'
+        )
+    return secret
 
 
 def _database_uri():
@@ -91,13 +117,10 @@ class Config:
 
     # Fail fast instead of silently signing tokens with a well-known secret.
     # Tests set JWT_SECRET_KEY before importing the app; local dev gets it
-    # from the project-root .env.
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-    if not JWT_SECRET_KEY:
-        raise RuntimeError(
-            "JWT_SECRET_KEY is not set. Add it to the project-root .env file "
-            "(see backend/.env.example)."
-        )
+    # from the project-root .env. A secret shorter than
+    # MIN_JWT_SECRET_LENGTH is refused too: HS256 is symmetric, so a short
+    # key is brute-forceable.
+    JWT_SECRET_KEY = validate_jwt_secret(os.getenv("JWT_SECRET_KEY"))
 
     # Short-lived access token, longer-lived refresh token (rotated on use).
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)

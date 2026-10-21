@@ -1,8 +1,10 @@
 """Password reset, rate limiting, CORS origins and scheduled reminders."""
 
+import importlib
+import os
 from datetime import datetime, timedelta, timezone
 from app.extensions import limiter
-from config import Config
+from config import Config, validate_jwt_secret
 from app import create_app
 from app.extensions import db
 from app.models import (
@@ -35,6 +37,64 @@ def _login(client, email="a@b.com", password="secret123"):
         "/api/auth/login",
         json={"email": email, "password": password},
     )
+
+
+# ------------------------------------------------------------ jwt secret
+
+def test_missing_jwt_secret_is_refused():
+    for bad in (None, "", "   "):
+        try:
+            validate_jwt_secret(bad)
+        except RuntimeError as exc:
+            assert "JWT_SECRET_KEY" in str(exc)
+        else:  # pragma: no cover - only reached on a regression
+            raise AssertionError("a missing JWT secret must be refused")
+
+
+def test_short_jwt_secret_is_refused():
+    """HS256 is symmetric: a short signing key is brute-forceable."""
+    try:
+        validate_jwt_secret("too-short")
+    except RuntimeError as exc:
+        assert "32" in str(exc)
+    else:  # pragma: no cover - only reached on a regression
+        raise AssertionError("a short JWT secret must be refused")
+
+
+def test_strong_jwt_secret_is_accepted():
+    secret = "a" * 32
+    assert validate_jwt_secret(secret) == secret
+
+
+def test_app_refuses_to_start_with_weak_secret(monkeypatch):
+    """The startup check really blocks the app, not just the helper."""
+    monkeypatch.setenv("JWT_SECRET_KEY", "weak")
+    import config as config_module
+
+    monkeypatch.delitem(config_module.__dict__, "Config", raising=False)
+    try:
+        importlib.reload(config_module)
+    except RuntimeError as exc:
+        assert "JWT_SECRET_KEY" in str(exc)
+    else:  # pragma: no cover - only reached on a regression
+        raise AssertionError("the app must refuse to start with a weak secret")
+    finally:
+        monkeypatch.setenv(
+            "JWT_SECRET_KEY", "test-secret-key-that-is-long-enough-for-hs256"
+        )
+        importlib.reload(config_module)
+
+
+def test_env_example_has_no_real_secret():
+    """The committed template must carry placeholders, never real values."""
+    from pathlib import Path
+
+    example = Path(__file__).resolve().parent.parent / ".env.example"
+    text = example.read_text(encoding="utf-8")
+    assert "JWT_SECRET_KEY=" in text
+    for line in text.splitlines():
+        if line.startswith("JWT_SECRET_KEY="):
+            assert line.split("=", 1)[1].strip() == "", "JWT_SECRET_KEY must be blank"
 
 
 def test_forgot_and_reset_password(client):
