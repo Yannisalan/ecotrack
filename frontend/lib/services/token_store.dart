@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Persists the session across app restarts.
 ///
@@ -10,6 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// - Web: the refresh token is an HttpOnly cookie the browser manages, so it is
 ///   never stored here. The short-lived access token is kept in memory only,
 ///   which keeps it out of reach of any injected script.
+///
+/// The web client never writes a token to localStorage/shared_preferences:
+/// anything stored there is readable by any script that runs on the page, so a
+/// single XSS payload would be enough to steal a long-lived refresh token and
+/// keep using it after the tab is closed. See docs/SECURITY_NOTES.md for the
+/// trade-off this implies for a cross-origin web deployment.
 abstract class SessionStore {
   Future<String?> readAccessToken();
   Future<String?> readRefreshToken();
@@ -47,8 +52,14 @@ class SecureSessionStore implements SessionStore {
   }
 }
 
-/// In-memory store used when the web refresh token lives in an HttpOnly cookie
-/// (same-origin deployment). Nothing is written to disk.
+/// In-memory store used on the web.
+///
+/// Nothing is written to disk: the refresh token is a first-party HttpOnly
+/// cookie the browser sends on its own, and the access token lives only in
+/// this process. A cross-origin web deployment (where no first-party cookie
+/// is available) keeps both in memory, so the user signs in again after a
+/// page reload instead of a refresh token being persisted where a script
+/// could read it.
 class MemorySessionStore implements SessionStore {
   String? _access;
   String? _refresh;
@@ -75,43 +86,8 @@ class MemorySessionStore implements SessionStore {
   }
 }
 
-/// localStorage-backed store. Used on the web only when cookies are not
-/// available (local development, or a cross-origin API host), where the refresh
-/// token must be sent in the request body. Client-side storage is XSS-exposed,
-/// which is why it is only the fallback and never used for same-origin prod.
-class PrefsSessionStore implements SessionStore {
-  static const _accessKey = 'ecotrack_access_token';
-  static const _refreshKey = 'ecotrack_refresh_token';
-
-  @override
-  Future<String?> readAccessToken() async =>
-      (await SharedPreferences.getInstance()).getString(_accessKey);
-
-  @override
-  Future<String?> readRefreshToken() async =>
-      (await SharedPreferences.getInstance()).getString(_refreshKey);
-
-  @override
-  Future<void> save({
-    required String accessToken,
-    String? refreshToken,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_accessKey, accessToken);
-    if (refreshToken != null) await prefs.setString(_refreshKey, refreshToken);
-  }
-
-  @override
-  Future<void> clear() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_accessKey);
-    await prefs.remove(_refreshKey);
-  }
-}
-
-/// Native -> OS keychain. Web -> in-memory when the refresh token is a
-/// first-party HttpOnly cookie, otherwise localStorage (documented fallback).
-SessionStore createSessionStore({bool cookieMode = false}) {
+/// Native -> OS keychain. Web -> in-memory only, never localStorage.
+SessionStore createSessionStore() {
   if (!kIsWeb) return SecureSessionStore();
-  return cookieMode ? MemorySessionStore() : PrefsSessionStore();
+  return MemorySessionStore();
 }

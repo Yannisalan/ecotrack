@@ -50,7 +50,7 @@ class ApiService {
   ApiService({http.Client? client, SessionStore? store})
       : _client = client ?? http.Client() {
     _useCookieRefresh = kIsWeb && _isSameOriginWeb();
-    _store = store ?? createSessionStore(cookieMode: _useCookieRefresh);
+    _store = store ?? createSessionStore();
   }
 
   String? get accessToken => _accessToken;

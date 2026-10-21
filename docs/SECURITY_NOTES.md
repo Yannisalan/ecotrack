@@ -127,3 +127,32 @@ The recommended deployment serves the web app and the API from one origin
 not needed at all and `CORS_ORIGINS` can stay empty. This is also what keeps
 the refresh cookie first-party, so `SameSite=Lax` applies and the cookie is
 never sent on a cross-site request.
+
+## 6. Token storage in the clients
+
+| Client | Access token | Refresh token |
+| --- | --- | --- |
+| Native (Android/iOS/desktop) | `flutter_secure_storage` (OS keychain/keystore) | `flutter_secure_storage` (OS keychain/keystore) |
+| Web | In memory only | HttpOnly cookie, managed by the browser |
+
+The web client never writes a token to `localStorage`/`shared_preferences`.
+Anything stored there is readable by every script that runs on the page, so one
+XSS payload would be enough to steal a long-lived refresh token and keep using
+it after the tab is closed. The in-memory access token is short-lived (15
+minutes) and never outlives the tab.
+
+### The trade-off
+
+The refresh cookie is first-party, so it is only sent when the web app and the
+API share an origin. A **cross-origin** web deployment (the web app on
+`app.example.com`, the API on `api.example.com`) therefore cannot use the
+cookie flow, and the refresh token cannot be persisted anywhere safe. The
+client keeps it in memory only, so the user signs in again after a page
+reload. That is the deliberate trade: a shorter session, instead of a refresh
+token in a place any script can read.
+
+To keep the same-origin flow, deploy the web app behind the same origin as
+the API (the Vercel rewrite) and leave `CORS_ORIGINS` empty.
+
+Note that the refresh cookie is also `SameSite=Lax`, so a cross-site XHR
+request would not carry it even if the domains were configured to allow it.
