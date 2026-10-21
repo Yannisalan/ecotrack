@@ -137,11 +137,27 @@ def login():
     password = data.get("password") or ""
 
     user = User.query.filter_by(email=email).first()
-    if not user or not user.check_password(password):
+
+    if user is None:
+        current_app.logger.warning(
+            "Login diagnostic: account lookup failed."
+        )
         return jsonify(error="Invalid email or password"), 401
 
-    # Refresh reminders on login so the inbox is current on the next open.
+    password_matches = user.check_password(password)
+
+    if not password_matches:
+        current_app.logger.warning(
+            "Login diagnostic: account found, password verification failed."
+        )
+        return jsonify(error="Invalid email or password"), 401
+
+    current_app.logger.info(
+        "Login diagnostic: account found and password verification succeeded."
+    )
+
     from .notification_service import generate_for_user
+
     generate_for_user(user.id)
 
     return _issue_tokens(user), 200
