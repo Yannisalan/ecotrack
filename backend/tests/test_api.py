@@ -908,7 +908,7 @@ def test_web_client_gets_cookie_not_body_refresh(client):
 
 def test_refresh_issues_usable_access_token(client):
     refresh = register(client).get_json()["refresh_token"]
-    r = client.post("/api/auth/refresh", headers={"Authorization": f"Bearer {refresh}"})
+    r = client.post("/api/auth/refresh", json={"refresh_token": refresh})
     assert r.status_code == 200
     new_access = r.get_json()["access_token"]
     assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {new_access}"}).status_code == 200
@@ -917,24 +917,59 @@ def test_refresh_issues_usable_access_token(client):
 def test_refresh_rotates_and_revokes_old_token(client):
     refresh = register(client).get_json()["refresh_token"]
     assert client.post("/api/auth/refresh",
-                       headers={"Authorization": f"Bearer {refresh}"}).status_code == 200
+                       json={"refresh_token": refresh}).status_code == 200
     replay = client.post("/api/auth/refresh",
-                         headers={"Authorization": f"Bearer {refresh}"})
+                         json={"refresh_token": refresh})
     assert replay.status_code == 401
 
 
 def test_logout_revokes_refresh_token(client):
     refresh = register(client).get_json()["refresh_token"]
     assert client.post("/api/auth/logout",
-                       headers={"Authorization": f"Bearer {refresh}"}).status_code == 200
+                       json={"refresh_token": refresh}).status_code == 200
     assert client.post("/api/auth/refresh",
-                       headers={"Authorization": f"Bearer {refresh}"}).status_code == 401
+                       json={"refresh_token": refresh}).status_code == 401
 
 
 def test_access_token_rejected_at_refresh(client):
     access = register(client).get_json()["access_token"]
     r = client.post("/api/auth/refresh", headers={"Authorization": f"Bearer {access}"})
     assert r.status_code == 401
+
+
+def test_refresh_token_in_authorization_header_is_rejected(client):
+    """The refresh token is not a header location.
+
+    No client sends it that way, so accepting it in a header would only widen
+    the set of channels a leaked token can be replayed from.
+    """
+    refresh = register(client).get_json()["refresh_token"]
+    r = client.post("/api/auth/refresh",
+                    headers={"Authorization": f"Bearer {refresh}"})
+    assert r.status_code == 401
+
+
+def test_access_token_is_accepted_from_the_header_only(client):
+    """An access token must not work from a cookie or from the JSON body."""
+    access = register(client).get_json()["access_token"]
+
+    as_cookie = client.get(
+        "/api/auth/me",
+        headers={"Cookie": f"access_token_cookie={access}"},
+    )
+    assert as_cookie.status_code == 401
+
+    as_body = client.get(
+        "/api/auth/me",
+        json={"access_token": access},
+    )
+    assert as_body.status_code == 401
+
+    as_header = client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert as_header.status_code == 200
 
 
 def test_refresh_requires_a_token(client):

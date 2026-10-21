@@ -120,6 +120,11 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
+    # Access tokens are accepted from the Authorization header only. Cookies
+    # and the JSON body are not access-token locations, so a value that leaks
+    # out of those channels cannot be replayed as a bearer token.
+    JWT_TOKEN_LOCATION = ["headers"]
+
     # Refresh tokens are delivered as an HttpOnly cookie on the web (first-party
     # via the same-origin deployment). Mobile clients receive them in the JSON
     # body instead and store them in the OS keychain.
@@ -128,8 +133,15 @@ class Config:
     # Double-submit CSRF is unnecessary here: the cookie is HttpOnly, first-party
     # and SameSite=Lax, so cross-site POSTs cannot ride it.
     JWT_COOKIE_CSRF_PROTECT = False
-    # Must be True in production (HTTPS). Defaults off so local http dev works.
-    JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "false").lower() == "true"
+
+    # Secure by default: browsers only send the refresh cookie over HTTPS.
+    # Local http development and the test suite opt out explicitly.
+    _cookie_secure_env = os.getenv("JWT_COOKIE_SECURE", "").strip().lower()
+    JWT_COOKIE_SECURE = (
+        _cookie_secure_env in ("1", "true", "yes", "on")
+        if _cookie_secure_env
+        else not (FLASK_DEBUG or TESTING)
+    )
 
     CORS_ORIGINS = _cors_origins()
 

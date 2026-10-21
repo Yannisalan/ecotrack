@@ -98,6 +98,49 @@ def test_env_example_has_no_real_secret():
             assert line.split("=", 1)[1].strip() == "", "JWT_SECRET_KEY must be blank"
 
 
+# ------------------------------------------------------------ cookie flags
+
+def test_refresh_cookie_is_secure_by_default(monkeypatch):
+    """The refresh cookie must not travel over plain HTTP in production."""
+    import importlib
+    import config
+
+    try:
+        monkeypatch.delenv("JWT_COOKIE_SECURE", raising=False)
+        monkeypatch.setenv("FLASK_DEBUG", "0")
+        monkeypatch.setenv("TESTING", "0")
+        importlib.reload(config)
+        assert config.Config.JWT_COOKIE_SECURE is True
+
+        # An explicit opt-out still wins.
+        monkeypatch.setenv("JWT_COOKIE_SECURE", "false")
+        importlib.reload(config)
+        assert config.Config.JWT_COOKIE_SECURE is False
+
+        # Local http development is allowed to use a plain cookie.
+        monkeypatch.delenv("JWT_COOKIE_SECURE", raising=False)
+        monkeypatch.setenv("FLASK_DEBUG", "1")
+        importlib.reload(config)
+        assert config.Config.JWT_COOKIE_SECURE is False
+    finally:
+        monkeypatch.undo()
+        importlib.reload(config)  # restore module state
+
+
+def test_access_token_location_is_header_only():
+    """Cookies and the JSON body must never be valid access-token locations."""
+    assert Config.JWT_TOKEN_LOCATION == ["headers"]
+
+
+def test_refresh_locations_match_the_clients():
+    """The web client uses the cookie, mobile uses the JSON body."""
+    from app.auth import _REFRESH_LOCATIONS
+
+    assert "cookies" in _REFRESH_LOCATIONS
+    assert "json" in _REFRESH_LOCATIONS
+    assert "headers" not in _REFRESH_LOCATIONS
+
+
 def test_forgot_and_reset_password(client):
     register(client)
     old = _login(client)

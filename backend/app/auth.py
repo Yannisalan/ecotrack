@@ -24,9 +24,13 @@ RESET_TTL_MINUTES = 30
 # accepts. Update this when the legal documents change.
 POLICY_VERSION = "2026-10-21"
 
-# Refresh tokens are read from the HttpOnly cookie (web), the Authorization
-# header or the JSON body (mobile). Access tokens stay header-only.
-_REFRESH_LOCATIONS = ["cookies", "headers", "json"]
+# Refresh tokens are read from the HttpOnly cookie (web) or the JSON body
+# (mobile, and web clients that cannot use a first-party cookie). The
+# Authorization header is deliberately not a refresh location: no client
+# sends the refresh token that way, and accepting it in a header would let a
+# token be replayed from a channel the browser does not protect the same way.
+# Access tokens stay header-only.
+_REFRESH_LOCATIONS = ["cookies", "json"]
 
 
 def _client_is_web():
