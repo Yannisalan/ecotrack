@@ -56,6 +56,12 @@ def create_app(config_class=Config):
     # app's config so a later app (e.g. a test with rate limiting on) is not
     # stuck with an earlier app's setting.
     limiter.enabled = bool(app.config.get("RATELIMIT_ENABLED", True))
+    # The singleton only reads RATELIMIT_DEFAULT the first time it is
+    # initialised, so a later app would otherwise inherit the first app's
+    # default limit. Clear the stored default and let init_app re-read it
+    # from this app's config.
+    if limiter.enabled and app.config.get("RATELIMIT_DEFAULT"):
+        limiter.limit_manager.set_default_limits([])
     limiter.init_app(app)
     cors.init_app(
         app,
