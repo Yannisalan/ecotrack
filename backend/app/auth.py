@@ -136,12 +136,39 @@ def login():
     email = normalize_email(data.get("email"))
     password = data.get("password") or ""
 
+    current_app.logger.info(
+        "Login diagnostic: normalized email length=%s",
+        len(email),
+    )
+
+    current_app.logger.info(
+        "Login diagnostic: database dialect=%s",
+        db.engine.dialect.name,
+    )
+
     user = User.query.filter_by(email=email).first()
 
     if user is None:
         current_app.logger.warning(
-            "Login diagnostic: account lookup failed."
+            "Login diagnostic: exact email lookup failed."
         )
+
+        # Diagnostic only: check for differences in capitalization
+        # or surrounding whitespace.
+        candidates = User.query.filter(
+            db.func.lower(db.func.trim(User.email)) == email
+        ).limit(2).all()
+
+        if candidates:
+            current_app.logger.warning(
+                "Login diagnostic: normalized database match exists; "
+                "stored email formatting may differ."
+            )
+        else:
+            current_app.logger.warning(
+                "Login diagnostic: no normalized database match found."
+            )
+
         return jsonify(error="Invalid email or password"), 401
 
     password_matches = user.check_password(password)
