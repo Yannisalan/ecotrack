@@ -1,0 +1,48 @@
+services:
+  - type: web
+    # Render derives the service URL from this name -> https://<name>.onrender.com
+    # (e.g. https://ecotrack-api.onrender.com). Put that URL in
+    # frontend/web/vercel.json as the PLACEHOLDER destination for /api/:path*.
+    name: ecotrack-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app --bind 0.0.0.0:$PORT --workers 1 --threads 4
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_COOKIE_SECURE
+        value: "true"
+      - key: FLASK_DEBUG
+        value: "0"
+      # One trusted reverse proxy (Render's load balancer) in front of the app,
+      # so rate limiting keys on the real client IP.
+      - key: PROXY_FIX_HOPS
+        value: "1"
+      - key: RATELIMIT_ENABLED
+        value: "true"
+      - key: RATELIMIT_DEFAULT
+        value: "600 per minute"
+      - key: MAX_CONTENT_LENGTH
+        value: "1048576"
+      # No SMTP integration exists, so reset tokens are NOT returned in the API
+      # response by default. Set to "true" only for a demo deployment.
+      - key: RESET_TOKEN_IN_RESPONSE
+        value: "false"
+      # In-process APScheduler (daily token purge + optional reminders). ON only
+      # because the startCommand pins --workers 1: each gunicorn worker would
+      # otherwise start its own scheduler and jobs would run N times. If you
+      # scale to multiple workers, set this to "false" and move the jobs to an
+      # external cron (e.g. a Render cron job hitting an admin endpoint).
+      - key: ENABLE_SCHEDULER
+        value: "true"
+      # Hourly in-process job that materializes reminders. Requires
+      # ENABLE_SCHEDULER=true. Keep "false" if you scale past a single worker.
+      - key: REMINDER_SCHEDULER
+        value: "true"

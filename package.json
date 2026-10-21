@@ -1,0 +1,9 @@
+{
+  "name": "ecotrack",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local project metadata placeholder for EcoTrack.",
+  "scripts": {
+    "test": "echo \"No root JS test runner configured.\""
+  }
+}

@@ -1,0 +1,6 @@
+EcoTrack project audit summary
+
+- Backend: Flask API with SQLite test configuration
+- Frontend: Flutter client for web/mobile
+- Local config values should remain in .env only
+- Do not commit real secrets
